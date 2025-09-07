@@ -9,6 +9,7 @@ import { useReservationTimer } from '@/hooks/useReservationTimer';
 import { ReservationTimer } from '@/components/ui/ReservationTimer';
 import { createWhatsAppMessage } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import { useOrder } from '@/hooks/useApi';
 
 interface OrderData {
   orderId: string;
@@ -25,9 +26,16 @@ export default function CheckoutPage() {
   const searchParams = useSearchParams();
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-
-  const [serverRemainingTime, setServerRemainingTime] = useState<number | undefined>(undefined);
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
+
+  const orderId = searchParams.get('orderId');
+  const { data: orderResponse, isLoading, error } = useOrder(orderId);
+  
+  const [serverRemainingTime, setServerRemainingTime] = useState<number | undefined>(
+    orderResponse?.order && typeof orderResponse.order === 'object' && 'remainingSeconds' in orderResponse.order 
+      ? (orderResponse.order as { remainingSeconds: number }).remainingSeconds 
+      : undefined
+  );
 
   const reservationTimer = useReservationTimer({
     onTimeout: () => {
@@ -39,42 +47,49 @@ export default function CheckoutPage() {
     initialTimeLeft: serverRemainingTime // Pass server time when available
   });
 
-  // Function to sync with server
-  const syncWithServer = useCallback(async (orderId: string) => {
-    try {
-      const response = await fetch(`/api/orders/${orderId}`);
-      if (response.ok) {
-        const { order, valid, expired } = await response.json();
-        
-        if (valid && !expired && order.remainingSeconds > 0) {
+  // Function to sync with server using React Query data
+  const syncWithServer = useCallback(() => {
+    if (orderResponse && orderId) {
+      const { order, valid, expired } = orderResponse;
+      
+      if (valid && !expired && order && typeof order === 'object' && 'remainingSeconds' in order) {
+        const remainingSeconds = (order as { remainingSeconds: number }).remainingSeconds;
+        if (remainingSeconds > 0) {
           const now = Date.now();
-          // Only sync if it's been more than 30 seconds since last sync
-          if (now - lastSyncTime > 30000) {
-            console.log('🔄 Periodic sync - server time:', order.remainingSeconds, 'seconds');
-            setServerRemainingTime(order.remainingSeconds);
+          // Only sync if it's been more than 5 seconds since last sync to avoid spam
+          if (now - lastSyncTime > 5000) {
+            setServerRemainingTime(remainingSeconds);
             setLastSyncTime(now);
           }
         } else {
-          // Order expired, clean up
+          // Order expired
+          alert('Tu reservación ha expirado.');
           localStorage.removeItem('currentOrder');
-          alert('Tu orden ha expirado. Serás redirigido al inicio.');
           router.push('/');
         }
+      } else {
+        // Order invalid or expired
+        alert('Tu reservación ha expirado o es inválida.');
+        localStorage.removeItem('currentOrder');
+        router.push('/');
       }
-    } catch (error) {
-      console.error('Error syncing with server:', error);
     }
-  }, [lastSyncTime, router]);
+  }, [orderResponse, orderId, lastSyncTime, router]);
 
-  // The timer hook will automatically use serverRemainingTime when it changes
+  // Sync with server when order data changes
+  useEffect(() => {
+    if (orderResponse && !isLoading) {
+      syncWithServer();
+    }
+  }, [orderResponse, isLoading, syncWithServer]);
 
-  // Periodic sync with server every 30 seconds
+  // Sync with server every 30 seconds
   useEffect(() => {
     if (!orderData?.orderId) return;
 
     const interval = setInterval(() => {
-      syncWithServer(orderData.orderId);
-    }, 30000); // Sync every 30 seconds
+      syncWithServer();
+    }, 30000); // 30 seconds
 
     return () => clearInterval(interval);
   }, [orderData?.orderId, syncWithServer]);
@@ -88,22 +103,27 @@ export default function CheckoutPage() {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'orders',
           filter: `id=eq.${orderData.orderId}`,
         },
         (payload) => {
-          console.log('🔔 Realtime order update:', payload);
-          const updatedOrder = payload.new as { status: string; id: string };
+          console.log('📡 Realtime order update:', payload);
           
-          if (updatedOrder.status === 'expired' || updatedOrder.status === 'cancelled') {
-            localStorage.removeItem('currentOrder');
-            alert('Tu orden ha sido cancelada o ha expirado. Serás redirigido al inicio.');
-            router.push('/');
-          } else if (updatedOrder.status === 'paid') {
-            alert('¡Pago confirmado! Tu orden ha sido procesada exitosamente.');
-            router.push('/');
+          if (payload.eventType === 'UPDATE') {
+            const updatedOrder = payload.new as { status: string; id: string };
+            
+            // Check if order was cancelled, expired, or paid
+            if (updatedOrder.status === 'cancelled' || updatedOrder.status === 'expired') {
+              alert('Tu orden ha sido cancelada o ha expirado.');
+              localStorage.removeItem('currentOrder');
+              router.push('/');
+            } else if (updatedOrder.status === 'paid') {
+              alert('¡Pago confirmado! Gracias por tu compra.');
+              localStorage.removeItem('currentOrder');
+              router.push('/');
+            }
           }
         }
       )
@@ -115,9 +135,7 @@ export default function CheckoutPage() {
   }, [orderData?.orderId, router]);
 
   useEffect(() => {
-    const initializeOrder = async () => {
-      // First try to get order data from URL params
-      const orderId = searchParams.get('orderId');
+    const initializeOrder = () => {
       const customerName = searchParams.get('customerName');
       const customerPhone = searchParams.get('customerPhone');
       const customerEmail = searchParams.get('customerEmail');
@@ -126,107 +144,38 @@ export default function CheckoutPage() {
       const raffleName = searchParams.get('raffleName') || '';
 
       if (orderId && customerName && customerPhone && ticketNumbers.length > 0) {
-        // Fresh order from URL params - validate with server to get real time
-        const newOrderData = {
+        const orderInfo: OrderData = {
           orderId,
           customerName,
           customerPhone,
           customerEmail: customerEmail || undefined,
           ticketNumbers,
           totalAmount,
-          raffleName
+          raffleName,
         };
-        
-        // Save to localStorage
-        localStorage.setItem('currentOrder', JSON.stringify(newOrderData));
-        setOrderData(newOrderData);
-        
-        // Validate with server to get real remaining time
-        try {
-          const response = await fetch(`/api/orders/${orderId}`);
-          if (response.ok) {
-            const { order, valid, expired } = await response.json();
-            
-            if (valid && !expired && order.remainingSeconds > 0) {
-              console.log('⏰ Fresh order - using server remaining time:', order.remainingSeconds);
-              setServerRemainingTime(order.remainingSeconds);
-            } else {
-              // Order expired or invalid, clean up
-              localStorage.removeItem('currentOrder');
-              alert('Tu orden ha expirado o es inválida. Serás redirigido al inicio.');
-              router.push('/');
-              return;
-            }
-          } else {
-            // Fallback to 15 minutes if server validation fails
-            console.log('⚠️ Server validation failed, using fallback timer');
-            setServerRemainingTime(15 * 60); // 15 minutes in seconds
-          }
-        } catch (error) {
-          console.error('Error validating fresh order:', error);
-          // Fallback to 15 minutes if validation fails
-          setServerRemainingTime(15 * 60); // 15 minutes in seconds
-        }
-        return;
-      }
 
-      // Try to recover from localStorage
-      const savedOrder = localStorage.getItem('currentOrder');
-      if (savedOrder) {
-        try {
-          const parsedOrder = JSON.parse(savedOrder);
-          
-          // Validate order with server
-          const response = await fetch(`/api/orders/${parsedOrder.orderId}`);
-          
-          if (response.ok) {
-            const { order, valid, expired } = await response.json();
-            
-            if (valid && !expired) {
-              // Order is still valid, restore it
-              setOrderData({
-                orderId: parsedOrder.orderId,
-                customerName: parsedOrder.customerName,
-                customerPhone: parsedOrder.customerPhone,
-                customerEmail: parsedOrder.customerEmail,
-                ticketNumbers: parsedOrder.ticketNumbers,
-                totalAmount: parsedOrder.totalAmount,
-                raffleName: parsedOrder.raffleName
-              });
-              
-              // Use server-provided remaining time
-              console.log('📡 Server response:', { remainingSeconds: order.remainingSeconds, orderId: parsedOrder.orderId });
-              if (order.remainingSeconds > 0) {
-                console.log('⏰ Setting server remaining time:', order.remainingSeconds);
-                setServerRemainingTime(order.remainingSeconds);
-              } else {
-                // Order expired, clean up
-                console.log('⚠️ Order expired, redirecting');
-                localStorage.removeItem('currentOrder');
-                alert('Tu orden ha expirado. Serás redirigido al inicio.');
-                router.push('/');
-              }
-              return;
-            } else {
-              // Order expired or invalid, clean up
-              localStorage.removeItem('currentOrder');
-            }
-          } else {
-            // Order not found, clean up
+        setOrderData(orderInfo);
+        localStorage.setItem('currentOrder', JSON.stringify(orderInfo));
+      } else {
+        // Try to get from localStorage
+        const savedOrder = localStorage.getItem('currentOrder');
+        if (savedOrder) {
+          try {
+            const parsedOrder = JSON.parse(savedOrder) as OrderData;
+            setOrderData(parsedOrder);
+          } catch (error) {
+            console.error('Error parsing saved order:', error);
             localStorage.removeItem('currentOrder');
+            router.push('/');
           }
-        } catch (error) {
-          console.error('Error parsing saved order:', error);
-          localStorage.removeItem('currentOrder');
+        } else {
+          router.push('/');
         }
       }
-
-      // No valid order found, redirect
-      router.push('/');
     };
 
     initializeOrder();
-  }, [searchParams]); // Add searchParams as dependency
+  }, [searchParams, orderId, router]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -241,28 +190,8 @@ export default function CheckoutPage() {
       setCopiedField(field);
       setTimeout(() => setCopiedField(null), 2000);
     } catch (err) {
-      console.error('Failed to copy: ', err);
+      console.error('Failed to copy text: ', err);
     }
-  };
-
-  const handleWhatsAppContact = () => {
-    if (!orderData) return;
-
-    const message = createWhatsAppMessage({
-      raffleName: orderData.raffleName,
-      ticketNumbers: orderData.ticketNumbers,
-      totalAmount: orderData.totalAmount,
-      orderId: orderData.orderId,
-      bankInfo: {
-        bankName: 'BBVA',
-        accountHolder: 'Moto Isla',
-        accountNumber: '1234567890',
-        clabe: '012345678901234567'
-      }
-    });
-
-    const whatsappUrl = `https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
   };
 
   if (!orderData) {
@@ -270,80 +199,108 @@ export default function CheckoutPage() {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
         <div className="text-white text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Cargando información del pedido...</p>
+          <p>Cargando información de la orden...</p>
         </div>
       </div>
     );
   }
 
-  const bankInfo = {
-    bankName: 'BBVA',
-    accountHolder: 'Moto Isla',
-    accountNumber: '1234567890',
-    clabe: '012345678901234567'
-  };
+  const whatsappMessage = createWhatsAppMessage({
+    orderId: orderData.orderId,
+    raffleName: orderData.raffleName,
+    ticketNumbers: orderData.ticketNumbers,
+    totalAmount: orderData.totalAmount,
+    bankInfo: {
+      bankName: 'BBVA Bancomer',
+      accountHolder: 'Moto Isla Raffle',
+      accountNumber: '0123456789',
+      clabe: '012345678901234567'
+    }
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Validando orden...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-center">
+          <p className="text-red-400 mb-4">Error al validar la orden</p>
+          <Button onClick={() => router.push('/')} variant="outline">
+            Volver al inicio
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Button
             variant="ghost"
-            onClick={() => router.push('/')}
+            size="sm"
+            onClick={() => router.back()}
             className="text-slate-300 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
+            Regresar
           </Button>
-          <h1 className="text-2xl font-bold text-white">Checkout - Pago Pendiente</h1>
+          <h1 className="text-2xl font-bold text-white">Proceso de Pago</h1>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Reservation Timer */}
-            <ReservationTimer
-              timeLeft={reservationTimer.formatTime}
-              isActive={reservationTimer.isActive}
-              isExpired={reservationTimer.isExpired}
-              ticketCount={orderData.ticketNumbers.length}
-            />
-
-            {/* Order Summary */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-400" />
-                  Resumen del Pedido
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-slate-400">Pedido:</span>
-                    <p className="text-white font-mono">#{orderData.orderId}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Order Summary */}
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-400" />
+                Resumen de tu Orden
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-slate-900/50 rounded-lg p-4">
+                <h3 className="font-medium text-white mb-2">{orderData.raffleName}</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-300">Orden ID:</span>
+                    <span className="text-white font-mono">{orderData.orderId}</span>
                   </div>
-                  <div>
-                    <span className="text-slate-400">Cliente:</span>
-                    <p className="text-white">{orderData.customerName}</p>
+                  <div className="flex justify-between">
+                    <span className="text-slate-300">Cliente:</span>
+                    <span className="text-white">{orderData.customerName}</span>
                   </div>
-                  <div>
-                    <span className="text-slate-400">Teléfono:</span>
-                    <p className="text-white">{orderData.customerPhone}</p>
+                  <div className="flex justify-between">
+                    <span className="text-slate-300">Teléfono:</span>
+                    <span className="text-white">{orderData.customerPhone}</span>
                   </div>
                   {orderData.customerEmail && (
-                    <div>
-                      <span className="text-slate-400">Email:</span>
-                      <p className="text-white">{orderData.customerEmail}</p>
+                    <div className="flex justify-between">
+                      <span className="text-slate-300">Email:</span>
+                      <span className="text-white">{orderData.customerEmail}</span>
                     </div>
                   )}
                 </div>
+              </div>
 
-                <div className="border-t border-slate-700 pt-4">
-                  <h4 className="text-white font-medium mb-2">Boletos Seleccionados ({orderData.ticketNumbers.length})</h4>
+              {/* Selected Tickets */}
+              <div>
+                <h4 className="font-medium text-white mb-2">
+                  Boletos Seleccionados ({orderData.ticketNumbers.length})
+                </h4>
+                <div className="bg-slate-900/50 rounded-lg p-3 max-h-32 overflow-y-auto">
                   <div className="flex flex-wrap gap-1">
-                    {orderData.ticketNumbers.map(number => (
+                    {orderData.ticketNumbers.sort((a, b) => a - b).map(number => (
                       <span 
                         key={number}
                         className="inline-block bg-blue-600 text-white text-xs px-2 py-1 rounded"
@@ -353,136 +310,197 @@ export default function CheckoutPage() {
                     ))}
                   </div>
                 </div>
+              </div>
 
-                <div className="border-t border-slate-700 pt-4">
-                  <div className="flex justify-between items-center text-xl font-bold">
-                    <span className="text-white">Total a Pagar:</span>
-                    <span className="text-green-400">{formatCurrency(orderData.totalAmount)}</span>
+              {/* Total */}
+              <div className="border-t border-slate-700 pt-4">
+                <div className="flex justify-between items-center text-lg font-semibold">
+                  <span className="text-white">Total a Pagar:</span>
+                  <span className="text-green-400">{formatCurrency(orderData.totalAmount)}</span>
+                </div>
+              </div>
+
+              {/* Timer */}
+              <div className="bg-yellow-900/20 border border-yellow-600 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-yellow-300 text-sm font-medium">⏰ Tiempo restante:</span>
+                </div>
+                <ReservationTimer 
+                  timeLeft={reservationTimer.timeLeft}
+                  isActive={reservationTimer.isActive}
+                />
+                <p className="text-yellow-300 text-xs mt-2">
+                  Tu reservación expirará automáticamente si no completas el pago a tiempo.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Payment Instructions */}
+          <Card className="bg-slate-800/50 border-slate-700">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-blue-400" />
+                Instrucciones de Pago
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Bank Transfer */}
+              <div className="bg-slate-900/50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Building2 className="h-5 w-5 text-green-400" />
+                  <h3 className="font-medium text-white">Transferencia Bancaria</h3>
+                </div>
+                
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <label className="text-slate-300 block mb-1">Banco:</label>
+                    <div className="flex items-center justify-between bg-slate-800 rounded px-3 py-2">
+                      <span className="text-white">BBVA Bancomer</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard('BBVA Bancomer', 'bank')}
+                        className="h-6 w-6 p-0"
+                      >
+                        {copiedField === 'bank' ? (
+                          <CheckCircle className="h-4 w-4 text-green-400" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 block mb-1">Número de Cuenta:</label>
+                    <div className="flex items-center justify-between bg-slate-800 rounded px-3 py-2">
+                      <span className="text-white font-mono">0123456789</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard('0123456789', 'account')}
+                        className="h-6 w-6 p-0"
+                      >
+                        {copiedField === 'account' ? (
+                          <CheckCircle className="h-4 w-4 text-green-400" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 block mb-1">CLABE:</label>
+                    <div className="flex items-center justify-between bg-slate-800 rounded px-3 py-2">
+                      <span className="text-white font-mono">012345678901234567</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard('012345678901234567', 'clabe')}
+                        className="h-6 w-6 p-0"
+                      >
+                        {copiedField === 'clabe' ? (
+                          <CheckCircle className="h-4 w-4 text-green-400" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 block mb-1">Beneficiario:</label>
+                    <div className="flex items-center justify-between bg-slate-800 rounded px-3 py-2">
+                      <span className="text-white">Moto Isla Raffle</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard('Moto Isla Raffle', 'beneficiary')}
+                        className="h-6 w-6 p-0"
+                      >
+                        {copiedField === 'beneficiary' ? (
+                          <CheckCircle className="h-4 w-4 text-green-400" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 block mb-1">Concepto:</label>
+                    <div className="flex items-center justify-between bg-slate-800 rounded px-3 py-2">
+                      <span className="text-white font-mono">Orden #{orderData.orderId}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(`Orden #${orderData.orderId}`, 'concept')}
+                        className="h-6 w-6 p-0"
+                      >
+                        {copiedField === 'concept' ? (
+                          <CheckCircle className="h-4 w-4 text-green-400" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-300 block mb-1">Monto Exacto:</label>
+                    <div className="flex items-center justify-between bg-slate-800 rounded px-3 py-2">
+                      <span className="text-white font-bold text-lg text-green-400">
+                        {formatCurrency(orderData.totalAmount)}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(orderData.totalAmount.toString(), 'amount')}
+                        className="h-6 w-6 p-0"
+                      >
+                        {copiedField === 'amount' ? (
+                          <CheckCircle className="h-4 w-4 text-green-400" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            {/* Bank Transfer Info */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Building2 className="h-5 w-5" />
-                  Datos para Transferencia
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4">
-                  <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
-                    <div>
-                      <span className="text-slate-400 text-sm">Banco:</span>
-                      <p className="text-white font-medium">{bankInfo.bankName}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
-                    <div>
-                      <span className="text-slate-400 text-sm">Titular:</span>
-                      <p className="text-white font-medium">{bankInfo.accountHolder}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
-                    <div>
-                      <span className="text-slate-400 text-sm">Número de Cuenta:</span>
-                      <p className="text-white font-mono">{bankInfo.accountNumber}</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(bankInfo.accountNumber, 'account')}
-                      className="text-slate-400 hover:text-white"
-                    >
-                      {copiedField === 'account' ? (
-                        <CheckCircle className="h-4 w-4 text-green-400" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
-                    <div>
-                      <span className="text-slate-400 text-sm">CLABE:</span>
-                      <p className="text-white font-mono">{bankInfo.clabe}</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(bankInfo.clabe, 'clabe')}
-                      className="text-slate-400 hover:text-white"
-                    >
-                      {copiedField === 'clabe' ? (
-                        <CheckCircle className="h-4 w-4 text-green-400" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* WhatsApp Contact */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+              {/* WhatsApp Contact */}
+              <div className="bg-green-900/20 border border-green-600 rounded-lg p-4">
+                <h3 className="font-medium text-white mb-2 flex items-center gap-2">
                   <MessageCircle className="h-5 w-5 text-green-400" />
-                  Enviar Comprobante
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-slate-300 text-sm">
-                  Una vez realizada la transferencia, envía tu comprobante por WhatsApp para confirmar el pago.
+                  Confirmar Pago por WhatsApp
+                </h3>
+                <p className="text-green-300 text-sm mb-3">
+                  Una vez realizada la transferencia, envía tu comprobante por WhatsApp para confirmar tu pago.
                 </p>
                 <Button
-                  onClick={handleWhatsAppContact}
+                  onClick={() => window.open(whatsappMessage, '_blank')}
                   className="w-full bg-green-600 hover:bg-green-700 text-white"
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
-                  Enviar por WhatsApp
+                  Enviar Comprobante por WhatsApp
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
 
-            {/* Instructions */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Instrucciones
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ol className="text-slate-300 text-sm space-y-2">
-                  <li className="flex items-start gap-2">
-                    <span className="bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
-                    Realiza la transferencia bancaria por el monto exacto
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
-                    Toma captura de pantalla del comprobante
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
-                    Envía el comprobante por WhatsApp
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center flex-shrink-0 mt-0.5">4</span>
-                    Espera la confirmación (máximo 24h)
-                  </li>
-                </ol>
-              </CardContent>
-            </Card>
-          </div>
+              {/* Important Notes */}
+              <div className="bg-red-900/20 border border-red-600 rounded-lg p-4">
+                <h3 className="font-medium text-white mb-2">⚠️ Importante:</h3>
+                <ul className="text-red-300 text-sm space-y-1">
+                  <li>• El monto debe ser exacto: {formatCurrency(orderData.totalAmount)}</li>
+                  <li>• Incluye el concepto: Orden #{orderData.orderId}</li>
+                  <li>• Envía tu comprobante por WhatsApp</li>
+                  <li>• Tu reservación expira en el tiempo mostrado arriba</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

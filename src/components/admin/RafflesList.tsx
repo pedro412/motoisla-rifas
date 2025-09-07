@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,53 +12,16 @@ import {
   Trash2,
   RefreshCw
 } from 'lucide-react';
+import { useRaffles, useDeleteRaffle } from '@/hooks/useApi';
 
-interface Raffle {
-  id: string;
-  title: string;
-  description: string;
-  image_url?: string;
-  start_date: string;
-  end_date: string;
-  ticket_price: number;
-  total_tickets: number;
-  draw_date?: string;
-  status: 'active' | 'completed' | 'cancelled';
-  created_at: string;
-  updated_at: string;
-}
 
 interface RafflesListProps {
   onRefresh?: () => void;
 }
 
 export default function RafflesList({ onRefresh }: RafflesListProps) {
-  const [raffles, setRaffles] = useState<Raffle[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchRaffles = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/admin/raffles-direct');
-      
-      if (!response.ok) {
-        throw new Error('Error al cargar las rifas');
-      }
-
-      const data = await response.json();
-      setRaffles(data.raffles || []);
-      setError(null);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error desconocido');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchRaffles();
-  }, []);
+  const { data: raffles = [], isLoading: loading, error, refetch } = useRaffles();
+  const deleteRaffleMutation = useDeleteRaffle();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -92,8 +54,19 @@ export default function RafflesList({ onRefresh }: RafflesListProps) {
   };
 
   const handleRefresh = () => {
-    fetchRaffles();
+    refetch();
     onRefresh?.();
+  };
+
+  const handleDeleteRaffle = async (raffleId: string) => {
+    if (confirm('¿Estás seguro de que quieres cancelar esta rifa?')) {
+      try {
+        await deleteRaffleMutation.mutateAsync(raffleId);
+      } catch (error) {
+        console.error('Error deleting raffle:', error);
+        alert('Error al cancelar la rifa');
+      }
+    }
   };
 
   if (loading) {
@@ -114,7 +87,9 @@ export default function RafflesList({ onRefresh }: RafflesListProps) {
       <Card className="bg-slate-800/50 border-slate-700">
         <CardContent className="p-6">
           <div className="text-center py-8">
-            <p className="text-red-400 mb-4">{error}</p>
+            <p className="text-red-400 mb-4">
+              {error instanceof Error ? error.message : 'Error al cargar las rifas'}
+            </p>
             <Button onClick={handleRefresh} variant="outline" className="border-slate-600 text-slate-300">
               Reintentar
             </Button>
@@ -224,10 +199,12 @@ export default function RafflesList({ onRefresh }: RafflesListProps) {
                     <Button
                       size="sm"
                       variant="outline"
+                      onClick={() => handleDeleteRaffle(raffle.id)}
+                      disabled={deleteRaffleMutation.isPending}
                       className="border-red-600 text-red-400 hover:bg-red-900/20"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Cancelar
+                      {deleteRaffleMutation.isPending ? 'Cancelando...' : 'Cancelar'}
                     </Button>
                   )}
                 </div>

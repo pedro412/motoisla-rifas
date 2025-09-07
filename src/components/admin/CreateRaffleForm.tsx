@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Plus, Calendar, DollarSign, Hash, ImageIcon } from 'lucide-react';
+import { raffleSchema, type RaffleFormData } from '@/lib/validations';
+import { useCreateRaffle } from '@/hooks/useApi';
+
 
 interface CreateRaffleFormProps {
   onSuccess?: () => void;
@@ -14,101 +18,34 @@ interface CreateRaffleFormProps {
 }
 
 export default function CreateRaffleForm({ onSuccess, onCancel }: CreateRaffleFormProps) {
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    image_url: '',
-    start_date: '',
-    end_date: '',
-    ticket_price: '',
-    total_tickets: '500',
-    draw_date: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const createRaffleMutation = useCreateRaffle();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Validate required fields
-      if (!formData.title || !formData.description || !formData.ticket_price || !formData.start_date || !formData.end_date) {
-        throw new Error('Por favor completa todos los campos requeridos');
-      }
-
-      // Validate dates
-      const startDate = new Date(formData.start_date);
-      const endDate = new Date(formData.end_date);
-      const drawDate = formData.draw_date ? new Date(formData.draw_date) : null;
-
-      if (startDate >= endDate) {
-        throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
-      }
-
-      if (drawDate && drawDate <= endDate) {
-        throw new Error('La fecha del sorteo debe ser posterior a la fecha de fin');
-      }
-
-      // Validate ticket price and count
-      const ticketPrice = parseFloat(formData.ticket_price);
-      const totalTickets = parseInt(formData.total_tickets);
-
-      if (ticketPrice <= 0) {
-        throw new Error('El precio del boleto debe ser mayor a 0');
-      }
-
-      if (totalTickets <= 0 || totalTickets > 10000) {
-        throw new Error('El número de boletos debe estar entre 1 y 10,000');
-      }
-
-      const response = await fetch('/api/admin/raffles-direct', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          ticket_price: ticketPrice,
-          total_tickets: totalTickets,
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
-          draw_date: drawDate ? drawDate.toISOString() : null
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al crear la rifa');
-      }
-
-      // Reset form
-      setFormData({
-        title: '',
-        description: '',
-        image_url: '',
-        start_date: '',
-        end_date: '',
-        ticket_price: '',
-        total_tickets: '500',
-        draw_date: ''
-      });
-
-      onSuccess?.();
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error desconocido');
-    } finally {
-      setLoading(false);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset
+  } = useForm<RaffleFormData>({
+    resolver: zodResolver(raffleSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      image_url: '',
+      ticket_price: 50,
+      total_tickets: 500,
+      draw_date: ''
     }
+  });
+
+  const onSubmit = (data: RaffleFormData) => {
+    createRaffleMutation.mutate(data, {
+      onSuccess: () => {
+        reset();
+        if (onSuccess) {
+          onSuccess();
+        }
+      },
+    });
   };
 
   return (
@@ -120,7 +57,7 @@ export default function CreateRaffleForm({ onSuccess, onCancel }: CreateRaffleFo
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -129,13 +66,13 @@ export default function CreateRaffleForm({ onSuccess, onCancel }: CreateRaffleFo
               </Label>
               <Input
                 id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
+                {...register('title')}
                 placeholder="Ej: Rifa de Motocicleta 2024"
                 className="bg-slate-700 border-slate-600 text-white"
-                required
               />
+              {errors.title && (
+                <p className="text-red-400 text-sm mt-1">{errors.title.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -145,13 +82,14 @@ export default function CreateRaffleForm({ onSuccess, onCancel }: CreateRaffleFo
               </Label>
               <Input
                 id="image_url"
-                name="image_url"
+                {...register('image_url')}
                 type="url"
-                value={formData.image_url}
-                onChange={handleInputChange}
                 placeholder="https://ejemplo.com/imagen.jpg"
                 className="bg-slate-700 border-slate-600 text-white"
               />
+              {errors.image_url && (
+                <p className="text-red-400 text-sm mt-1">{errors.image_url.message}</p>
+              )}
             </div>
           </div>
 
@@ -161,13 +99,13 @@ export default function CreateRaffleForm({ onSuccess, onCancel }: CreateRaffleFo
             </Label>
             <Textarea
               id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
+              {...register('description')}
               placeholder="Describe los detalles de la rifa, el premio, términos y condiciones..."
               className="bg-slate-700 border-slate-600 text-white min-h-[100px]"
-              required
             />
+            {errors.description && (
+              <p className="text-red-400 text-sm mt-1">{errors.description.message}</p>
+            )}
           </div>
 
           {/* Pricing and Tickets */}
@@ -179,16 +117,16 @@ export default function CreateRaffleForm({ onSuccess, onCancel }: CreateRaffleFo
               </Label>
               <Input
                 id="ticket_price"
-                name="ticket_price"
+                {...register('ticket_price', { valueAsNumber: true })}
                 type="number"
                 step="0.01"
                 min="0.01"
-                value={formData.ticket_price}
-                onChange={handleInputChange}
                 placeholder="50.00"
                 className="bg-slate-700 border-slate-600 text-white"
-                required
               />
+              {errors.ticket_price && (
+                <p className="text-red-400 text-sm mt-1">{errors.ticket_price.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -198,71 +136,43 @@ export default function CreateRaffleForm({ onSuccess, onCancel }: CreateRaffleFo
               </Label>
               <Input
                 id="total_tickets"
-                name="total_tickets"
+                {...register('total_tickets', { valueAsNumber: true })}
                 type="number"
                 min="1"
                 max="10000"
-                value={formData.total_tickets}
-                onChange={handleInputChange}
                 className="bg-slate-700 border-slate-600 text-white"
-                required
               />
+              {errors.total_tickets && (
+                <p className="text-red-400 text-sm mt-1">{errors.total_tickets.message}</p>
+              )}
             </div>
           </div>
 
-          {/* Dates */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="start_date" className="text-slate-300 flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                Fecha de Inicio *
-              </Label>
-              <Input
-                id="start_date"
-                name="start_date"
-                type="datetime-local"
-                value={formData.start_date}
-                onChange={handleInputChange}
-                className="bg-slate-700 border-slate-600 text-white"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="end_date" className="text-slate-300 flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                Fecha de Fin *
-              </Label>
-              <Input
-                id="end_date"
-                name="end_date"
-                type="datetime-local"
-                value={formData.end_date}
-                onChange={handleInputChange}
-                className="bg-slate-700 border-slate-600 text-white"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="draw_date" className="text-slate-300 flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                Fecha del Sorteo
-              </Label>
-              <Input
-                id="draw_date"
-                name="draw_date"
-                type="datetime-local"
-                value={formData.draw_date}
-                onChange={handleInputChange}
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-            </div>
+          {/* Draw Date */}
+          <div className="space-y-2">
+            <Label htmlFor="draw_date" className="text-slate-300 flex items-center gap-1">
+              <Calendar className="h-4 w-4" />
+              Fecha del Sorteo *
+            </Label>
+            <Input
+              id="draw_date"
+              {...register('draw_date')}
+              type="datetime-local"
+              className="bg-slate-700 border-slate-600 text-white"
+            />
+            {errors.draw_date && (
+              <p className="text-red-400 text-sm mt-1">{errors.draw_date.message}</p>
+            )}
           </div>
 
-          {error && (
+          {createRaffleMutation.error && (
             <div className="bg-red-900/20 border border-red-700 rounded-lg p-3">
-              <p className="text-red-400 text-sm">{error}</p>
+              <p className="text-red-400 text-sm">
+                {createRaffleMutation.error instanceof Error 
+                  ? createRaffleMutation.error.message 
+                  : 'Error al crear la rifa'
+                }
+              </p>
             </div>
           )}
 
@@ -270,10 +180,11 @@ export default function CreateRaffleForm({ onSuccess, onCancel }: CreateRaffleFo
           <div className="flex gap-3 pt-4">
             <Button
               type="submit"
-              disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={createRaffleMutation.isPending}
+              className="bg-green-600 hover:bg-green-700 text-white disabled:bg-slate-600"
             >
-              {loading ? 'Creando...' : 'Crear Rifa'}
+              <Plus className="h-4 w-4 mr-2" />
+              {createRaffleMutation.isPending ? 'Creando...' : 'Crear Rifa'}
             </Button>
             {onCancel && (
               <Button

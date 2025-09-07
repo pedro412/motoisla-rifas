@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { X, ShoppingCart, CreditCard, User, Phone, Mail } from 'lucide-react';
 import { Raffle, CartItem } from '@/lib/types';
+import { customerInfoSchema, type CustomerInfo } from '@/lib/validations';
 
 interface CheckoutConfirmDialogProps {
   isOpen: boolean;
@@ -23,10 +27,19 @@ export function CheckoutConfirmDialog({
   cartItems, 
   totalPrice 
 }: CheckoutConfirmDialogProps) {
-  const [customerInfo, setCustomerInfo] = useState({
-    name: '',
-    phone: '',
-    email: ''
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+    reset
+  } = useForm<CustomerInfo>({
+    resolver: zodResolver(customerInfoSchema),
+    mode: 'onChange',
+    defaultValues: {
+      name: '',
+      phone: '',
+      email: ''
+    }
   });
 
   if (!isOpen) return null;
@@ -40,16 +53,18 @@ export function CheckoutConfirmDialog({
 
   const ticketNumbers = cartItems.map(item => item.ticketNumber).sort((a, b) => a - b);
 
-  const isFormValid = customerInfo.name.trim() && customerInfo.phone.trim();
+  const onSubmit = (data: CustomerInfo) => {
+    onConfirm({
+      name: data.name.trim(),
+      phone: data.phone.trim(),
+      email: data.email?.trim() || undefined
+    });
+    reset();
+  };
 
-  const handleConfirm = () => {
-    if (isFormValid) {
-      onConfirm({
-        name: customerInfo.name.trim(),
-        phone: customerInfo.phone.trim(),
-        email: customerInfo.email.trim() || undefined
-      });
-    }
+  const handleClose = () => {
+    reset();
+    onClose();
   };
 
   return (
@@ -63,7 +78,7 @@ export function CheckoutConfirmDialog({
           <Button
             variant="ghost"
             size="sm"
-            onClick={onClose}
+            onClick={handleClose}
             className="h-8 w-8 p-0 text-slate-400 hover:text-white"
           >
             <X className="h-4 w-4" />
@@ -103,54 +118,60 @@ export function CheckoutConfirmDialog({
           </div>
 
           {/* Customer Information Form */}
-          <div className="space-y-3">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
             <h4 className="font-medium text-white">Información del Cliente</h4>
             
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-slate-300 mb-1">
-                <User className="inline h-4 w-4 mr-1" />
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-slate-300 flex items-center gap-1">
+                <User className="h-4 w-4" />
                 Nombre Completo *
-              </label>
-              <input
+              </Label>
+              <Input
                 id="name"
+                {...register('name')}
                 type="text"
                 placeholder="Tu nombre completo"
-                value={customerInfo.name}
-                onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
               />
+              {errors.name && (
+                <p className="text-red-400 text-sm">{errors.name.message}</p>
+              )}
             </div>
             
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-slate-300 mb-1">
-                <Phone className="inline h-4 w-4 mr-1" />
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-slate-300 flex items-center gap-1">
+                <Phone className="h-4 w-4" />
                 Teléfono *
-              </label>
-              <input
+              </Label>
+              <Input
                 id="phone"
+                {...register('phone')}
                 type="tel"
                 placeholder="Tu número de teléfono"
-                value={customerInfo.phone}
-                onChange={(e) => setCustomerInfo(prev => ({ ...prev, phone: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
               />
+              {errors.phone && (
+                <p className="text-red-400 text-sm">{errors.phone.message}</p>
+              )}
             </div>
             
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1">
-                <Mail className="inline h-4 w-4 mr-1" />
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-slate-300 flex items-center gap-1">
+                <Mail className="h-4 w-4" />
                 Email (opcional)
-              </label>
-              <input
+              </Label>
+              <Input
                 id="email"
+                {...register('email')}
                 type="email"
                 placeholder="tu@email.com"
-                value={customerInfo.email}
-                onChange={(e) => setCustomerInfo(prev => ({ ...prev, email: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
               />
+              {errors.email && (
+                <p className="text-red-400 text-sm">{errors.email.message}</p>
+              )}
             </div>
-          </div>
+          </form>
 
           {/* Warning */}
           <div className="bg-yellow-900/20 border border-yellow-600 rounded-lg p-3">
@@ -162,15 +183,17 @@ export function CheckoutConfirmDialog({
           {/* Action Buttons */}
           <div className="flex gap-3 pt-2">
             <Button
+              type="button"
               variant="outline"
-              onClick={onClose}
+              onClick={handleClose}
               className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700"
             >
               Cancelar
             </Button>
             <Button
-              onClick={handleConfirm}
-              disabled={!isFormValid}
+              type="submit"
+              onClick={handleSubmit(onSubmit)}
+              disabled={!isValid}
               className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:bg-slate-600 disabled:cursor-not-allowed"
             >
               <CreditCard className="h-4 w-4 mr-2" />

@@ -12,6 +12,40 @@ export async function GET(request: NextRequest) {
     const supabaseUrl = 'http://127.0.0.1:54321';
     const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
 
+    // First, clean up any expired tickets before fetching
+    try {
+      const now = new Date().toISOString();
+      
+      // Release expired tickets back to 'free' status
+      await fetch(`${supabaseUrl}/rest/v1/tickets?status=eq.reserved&expires_at=lt.${now}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`
+        },
+        body: JSON.stringify({
+          status: 'free',
+          expires_at: null
+        })
+      });
+
+      // Cancel expired orders
+      await fetch(`${supabaseUrl}/rest/v1/orders?status=eq.pending&payment_deadline=lt.${now}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`
+        },
+        body: JSON.stringify({
+          status: 'expired'
+        })
+      });
+    } catch (cleanupError) {
+      console.warn('Cleanup failed, continuing with ticket fetch:', cleanupError);
+    }
+
     // Fetch tickets for the specific raffle ordered by number
     const response = await fetch(`${supabaseUrl}/rest/v1/tickets?raffle_id=eq.${raffleId}&order=number.asc`, {
       method: 'GET',

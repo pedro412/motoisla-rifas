@@ -1,103 +1,208 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { RaffleHeader } from '@/components/raffle/RaffleHeader';
+import { TicketGrid } from '@/components/raffle/TicketGridSimple';
+import { Cart } from '@/components/raffle/CartSimple';
+import { useRaffle } from '@/hooks/useRaffle';
+import { useCart } from '@/hooks/useCart';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Clock, CreditCard } from 'lucide-react';
+
+interface ActiveOrder {
+  orderId: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  ticketNumbers: number[];
+  totalAmount: number;
+  raffleName: string;
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { raffle, tickets, loading, error, refreshTickets } = useRaffle();
+  const cart = useCart(raffle?.id);
+  const router = useRouter();
+  const [activeOrder, setActiveOrder] = useState<ActiveOrder | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Check for active order on mount
+  useEffect(() => {
+    const checkActiveOrder = async () => {
+      const savedOrder = localStorage.getItem('currentOrder');
+      if (savedOrder) {
+        try {
+          const parsedOrder = JSON.parse(savedOrder);
+          
+          // Validate order with server
+          const response = await fetch(`/api/orders/${parsedOrder.orderId}`);
+          
+          if (response.ok) {
+            const { order, valid, expired } = await response.json();
+            
+            if (valid && !expired) {
+              setActiveOrder(parsedOrder);
+            } else {
+              // Order expired, clean up
+              localStorage.removeItem('currentOrder');
+            }
+          } else {
+            // Order not found, clean up
+            localStorage.removeItem('currentOrder');
+          }
+        } catch (error) {
+          console.error('Error checking active order:', error);
+          localStorage.removeItem('currentOrder');
+        }
+      }
+    };
+
+    checkActiveOrder();
+  }, []);
+
+  const handleContinuePayment = () => {
+    if (activeOrder) {
+      const params = new URLSearchParams({
+        orderId: activeOrder.orderId,
+        customerName: activeOrder.customerName,
+        customerPhone: activeOrder.customerPhone,
+        ...(activeOrder.customerEmail && { customerEmail: activeOrder.customerEmail }),
+        ticketNumbers: activeOrder.ticketNumbers.join(','),
+        totalAmount: activeOrder.totalAmount.toString(),
+        raffleName: activeOrder.raffleName
+      });
+      router.push(`/checkout?${params.toString()}`);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    if (activeOrder) {
+      try {
+        // Cancel the order on server
+        await fetch(`/api/orders/${activeOrder.orderId}`, {
+          method: 'DELETE'
+        });
+      } catch (error) {
+        console.error('Error canceling order:', error);
+      }
+      
+      // Clean up locally
+      localStorage.removeItem('currentOrder');
+      setActiveOrder(null);
+      refreshTickets(); // Refresh to show released tickets
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mb-4"></div>
+          <p className="text-white text-xl">Cargando rifa...</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 text-xl mb-4">Error: {error}</p>
+          <p className="text-slate-300">
+            Asegúrate de que tu archivo .env.local esté configurado correctamente
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!raffle) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-white text-xl">No hay rifas activas en este momento</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">
+            🏍️ Moto Isla Raffle
+          </h1>
+          <p className="text-slate-300">
+            Rifas de productos motociclistas de las mejores marcas
+          </p>
+        </div>
+        
+        {/* Active Order Notification */}
+        {activeOrder && (
+          <Card className="mb-6 bg-amber-900/20 border-amber-600">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-amber-400" />
+                  <div>
+                    <p className="text-amber-300 font-medium">
+                      Tienes un pago pendiente
+                    </p>
+                    <p className="text-amber-200 text-sm">
+                      Boletos {activeOrder.ticketNumbers.join(', ')} - ${activeOrder.totalAmount}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleContinuePayment}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    size="sm"
+                  >
+                    <CreditCard className="h-4 w-4 mr-1" />
+                    Continuar Pago
+                  </Button>
+                  <Button
+                    onClick={handleCancelOrder}
+                    variant="outline"
+                    className="border-amber-600 text-amber-300 hover:bg-amber-900/30"
+                    size="sm"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Main Content */}
+        <div className="grid lg:grid-cols-4 gap-8">
+          {/* Raffle Info & Ticket Grid */}
+          <div className="lg:col-span-3 space-y-6">
+            <RaffleHeader raffle={raffle} />
+            <TicketGrid 
+              raffle={raffle}
+              tickets={tickets} 
+              cart={cart}
+              onTicketsChange={refreshTickets}
+            />
+          </div>
+
+          {/* Cart Sidebar */}
+          <div className="lg:col-span-1">
+            <Cart 
+              raffle={raffle}
+              cart={cart}
+              onOrderComplete={refreshTickets}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

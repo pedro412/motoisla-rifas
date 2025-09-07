@@ -15,8 +15,12 @@ import {
   CheckCircle, 
   XCircle,
   Eye,
-  LogOut
+  LogOut,
+  Plus,
+  List
 } from 'lucide-react';
+import CreateRaffleForm from '@/components/admin/CreateRaffleForm';
+import RafflesList from '@/components/admin/RafflesList';
 
 interface AdminStats {
   totalTickets: number;
@@ -49,6 +53,7 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'create-raffle' | 'manage-raffles'>('dashboard');
 
   // Check authentication on mount
   useEffect(() => {
@@ -205,129 +210,184 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm">Boletos Vendidos</p>
-                    <p className="text-2xl font-bold text-white">{stats.soldTickets}</p>
-                  </div>
-                  <Ticket className="h-8 w-8 text-green-400" />
-                </div>
-              </CardContent>
-            </Card>
+        {/* Navigation Tabs */}
+        <div className="flex gap-2 mb-8">
+          <Button
+            onClick={() => setActiveTab('dashboard')}
+            variant={activeTab === 'dashboard' ? 'default' : 'outline'}
+            className={activeTab === 'dashboard' 
+              ? 'bg-blue-600 hover:bg-blue-700' 
+              : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+            }
+          >
+            <Shield className="h-4 w-4 mr-2" />
+            Dashboard
+          </Button>
+          <Button
+            onClick={() => setActiveTab('create-raffle')}
+            variant={activeTab === 'create-raffle' ? 'default' : 'outline'}
+            className={activeTab === 'create-raffle' 
+              ? 'bg-blue-600 hover:bg-blue-700' 
+              : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+            }
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Crear Rifa
+          </Button>
+          <Button
+            onClick={() => setActiveTab('manage-raffles')}
+            variant={activeTab === 'manage-raffles' ? 'default' : 'outline'}
+            className={activeTab === 'manage-raffles' 
+              ? 'bg-blue-600 hover:bg-blue-700' 
+              : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+            }
+          >
+            <List className="h-4 w-4 mr-2" />
+            Gestionar Rifas
+          </Button>
+        </div>
 
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm">Boletos Reservados</p>
-                    <p className="text-2xl font-bold text-white">{stats.reservedTickets}</p>
-                  </div>
-                  <Clock className="h-8 w-8 text-yellow-400" />
-                </div>
-              </CardContent>
-            </Card>
+        {/* Content based on active tab */}
+        {activeTab === 'dashboard' && (
+          <>
+            {/* Stats Cards */}
+            {stats && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-slate-400 text-sm">Boletos Vendidos</p>
+                        <p className="text-2xl font-bold text-white">{stats.soldTickets}</p>
+                      </div>
+                      <Ticket className="h-8 w-8 text-green-400" />
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm">Órdenes Pendientes</p>
-                    <p className="text-2xl font-bold text-white">{stats.pendingOrders}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-blue-400" />
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-slate-400 text-sm">Boletos Reservados</p>
+                        <p className="text-2xl font-bold text-white">{stats.reservedTickets}</p>
+                      </div>
+                      <Clock className="h-8 w-8 text-yellow-400" />
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm">Ingresos Totales</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(stats.totalRevenue)}</p>
-                  </div>
-                  <DollarSign className="h-8 w-8 text-green-400" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-slate-400 text-sm">Órdenes Pendientes</p>
+                        <p className="text-2xl font-bold text-white">{stats.pendingOrders}</p>
+                      </div>
+                      <Users className="h-8 w-8 text-blue-400" />
+                    </div>
+                  </CardContent>
+                </Card>
 
-        {/* Orders Table */}
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center justify-between">
-              <span>Órdenes Recientes</span>
-              <Button
-                onClick={fetchDashboardData}
-                variant="outline"
-                size="sm"
-                className="border-slate-600 text-slate-300 hover:bg-slate-700"
-              >
-                Actualizar
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-                <p className="text-slate-400">Cargando órdenes...</p>
-              </div>
-            ) : orders.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
-                No hay órdenes disponibles
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-700">
-                      <th className="text-left py-3 px-2 text-slate-300">ID</th>
-                      <th className="text-left py-3 px-2 text-slate-300">Cliente</th>
-                      <th className="text-left py-3 px-2 text-slate-300">Boletos</th>
-                      <th className="text-left py-3 px-2 text-slate-300">Total</th>
-                      <th className="text-left py-3 px-2 text-slate-300">Estado</th>
-                      <th className="text-left py-3 px-2 text-slate-300">Fecha</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orders.map((order) => (
-                      <tr key={order.id} className="border-b border-slate-700/50">
-                        <td className="py-3 px-2 text-slate-300 font-mono text-xs">
-                          {order.id.slice(0, 8)}...
-                        </td>
-                        <td className="py-3 px-2 text-white">
-                          <div>
-                            <p>{order.customer_name || 'N/A'}</p>
-                            <p className="text-xs text-slate-400">{order.customer_phone}</p>
-                          </div>
-                        </td>
-                        <td className="py-3 px-2 text-slate-300">
-                          {order.tickets.join(', ')}
-                        </td>
-                        <td className="py-3 px-2 text-white font-medium">
-                          {formatCurrency(order.total)}
-                        </td>
-                        <td className="py-3 px-2">
-                          {getStatusBadge(order.status)}
-                        </td>
-                        <td className="py-3 px-2 text-slate-400 text-xs">
-                          {formatDate(order.created_at)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-slate-400 text-sm">Ingresos Totales</p>
+                        <p className="text-2xl font-bold text-white">{formatCurrency(stats.totalRevenue)}</p>
+                      </div>
+                      <DollarSign className="h-8 w-8 text-green-400" />
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
-          </CardContent>
-        </Card>
+
+            {/* Orders Table */}
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center justify-between">
+                  <span>Órdenes Recientes</span>
+                  <Button
+                    onClick={fetchDashboardData}
+                    variant="outline"
+                    size="sm"
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    Actualizar
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+                    <p className="text-slate-400">Cargando órdenes...</p>
+                  </div>
+                ) : orders.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400">
+                    No hay órdenes disponibles
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-700">
+                          <th className="text-left py-3 px-2 text-slate-300">ID</th>
+                          <th className="text-left py-3 px-2 text-slate-300">Cliente</th>
+                          <th className="text-left py-3 px-2 text-slate-300">Boletos</th>
+                          <th className="text-left py-3 px-2 text-slate-300">Total</th>
+                          <th className="text-left py-3 px-2 text-slate-300">Estado</th>
+                          <th className="text-left py-3 px-2 text-slate-300">Fecha</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orders.map((order) => (
+                          <tr key={order.id} className="border-b border-slate-700/50">
+                            <td className="py-3 px-2 text-slate-300 font-mono text-xs">
+                              {order.id.slice(0, 8)}...
+                            </td>
+                            <td className="py-3 px-2 text-white">
+                              <div>
+                                <p>{order.customer_name || 'N/A'}</p>
+                                <p className="text-xs text-slate-400">{order.customer_phone}</p>
+                              </div>
+                            </td>
+                            <td className="py-3 px-2 text-slate-300">
+                              {order.tickets.join(', ')}
+                            </td>
+                            <td className="py-3 px-2 text-white font-medium">
+                              {formatCurrency(order.total)}
+                            </td>
+                            <td className="py-3 px-2">
+                              {getStatusBadge(order.status)}
+                            </td>
+                            <td className="py-3 px-2 text-slate-400 text-xs">
+                              {formatDate(order.created_at)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        {activeTab === 'create-raffle' && (
+          <CreateRaffleForm 
+            onSuccess={() => {
+              setActiveTab('manage-raffles');
+              fetchDashboardData();
+            }}
+          />
+        )}
+
+        {activeTab === 'manage-raffles' && (
+          <RafflesList onRefresh={fetchDashboardData} />
+        )}
       </div>
     </div>
   );

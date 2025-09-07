@@ -1,8 +1,7 @@
 'use client';
 
-import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, DollarSign, Users, Clock, Trophy } from 'lucide-react';
+import { Calendar, Trophy, Clock } from 'lucide-react';
 import { Raffle } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
 

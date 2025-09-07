@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(
   request: NextRequest,
@@ -12,64 +11,30 @@ export async function GET(
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
     }
 
-    // Return mock order validation if Supabase is not properly configured
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')) {
-      // Try to get order creation time from localStorage or extract from orderId
-      let createdAt = new Date();
-      let paymentDeadline = new Date(Date.now() + 15 * 60 * 1000);
-      
-      // Extract timestamp from orderId if it follows the pattern "order-{timestamp}"
-      const timestampMatch = orderId.match(/order-(\d+)/);
-      if (timestampMatch) {
-        const timestamp = parseInt(timestampMatch[1]);
-        createdAt = new Date(timestamp);
-        paymentDeadline = new Date(timestamp + 15 * 60 * 1000); // 15 minutes from creation
-      }
-
-      const mockOrder = {
-        id: orderId,
-        tickets: ['1', '2'], // Mock ticket numbers
-        total: 100,
-        status: 'pending',
-        payment_deadline: paymentDeadline.toISOString(),
-        created_at: createdAt.toISOString()
-      };
-
-      // Calculate remaining time in seconds
-      const now = new Date();
-      const remainingMs = paymentDeadline.getTime() - now.getTime();
-      const remainingSeconds = Math.max(0, Math.floor(remainingMs / 1000));
-
-      return NextResponse.json({
-        order: {
-          id: mockOrder.id,
-          tickets: mockOrder.tickets,
-          total: mockOrder.total,
-          status: mockOrder.status,
-          paymentDeadline: mockOrder.payment_deadline,
-          remainingSeconds,
-          customerInfo: {
-            name: 'Mock Customer',
-            phone: '123123123',
-            email: null
-          },
-          createdAt: mockOrder.created_at
-        },
-        valid: true,
-        expired: false
-      });
-    }
+    const supabaseUrl = 'http://127.0.0.1:54321';
+    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
 
     // Get order details from database
-    const { data: order, error: orderError } = await supabaseAdmin
-      .from('orders')
-      .select('*')
-      .eq('id', orderId)
-      .single();
+    const orderResponse = await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${orderId}`, {
+      method: 'GET',
+      headers: {
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`
+      }
+    });
 
-    if (orderError || !order) {
+    if (!orderResponse.ok) {
+      const errorText = await orderResponse.text();
+      console.error('Error fetching order:', errorText);
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
+
+    const orders = await orderResponse.json();
+    if (!orders || orders.length === 0) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    const order = orders[0];
 
     // Check if order has expired
     const now = new Date();
@@ -77,22 +42,32 @@ export async function GET(
     const isExpired = now > paymentDeadline;
 
     if (isExpired) {
-      // Update order status to cancelled and release tickets
-      await supabaseAdmin
-        .from('orders')
-        .update({ status: 'cancelled' })
-        .eq('id', orderId);
+      // Update order status to cancelled
+      await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${orderId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`
+        },
+        body: JSON.stringify({ status: 'cancelled' })
+      });
 
       // Release the reserved tickets
       if (order.tickets && Array.isArray(order.tickets)) {
-        await supabaseAdmin
-          .from('tickets')
-          .update({ 
+        const ticketNumbers = order.tickets.join(',');
+        await fetch(`${supabaseUrl}/rest/v1/tickets?number=in.(${ticketNumbers})&status=eq.reserved`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': serviceRoleKey,
+            'Authorization': `Bearer ${serviceRoleKey}`
+          },
+          body: JSON.stringify({ 
             status: 'free',
             expires_at: null
           })
-          .in('number', order.tickets.map(Number))
-          .eq('status', 'reserved');
+        });
       }
 
       return NextResponse.json({ 
@@ -105,21 +80,18 @@ export async function GET(
     const remainingMs = paymentDeadline.getTime() - now.getTime();
     const remainingSeconds = Math.max(0, Math.floor(remainingMs / 1000));
 
-    // Parse customer info from proof_url (temporary storage)
-    let customerInfo = null;
-    try {
-      if (order.proof_url) {
-        customerInfo = JSON.parse(order.proof_url);
-      }
-    } catch (e) {
-      // If parsing fails, proof_url might contain actual proof URL
-    }
+    // Get customer info from dedicated fields
+    const customerInfo = {
+      name: order.customer_name,
+      phone: order.customer_phone,
+      email: order.customer_email
+    };
 
     return NextResponse.json({
       order: {
         id: order.id,
         tickets: order.tickets,
-        total: order.total,
+        total: order.total_amount,
         status: order.status,
         paymentDeadline: order.payment_deadline,
         remainingSeconds,
@@ -147,33 +119,43 @@ export async function DELETE(
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
     }
 
-    // Return success for mock data (no actual deletion needed)
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')) {
-      return NextResponse.json({ success: true, message: 'Order cancelled' });
-    }
+    const supabaseUrl = 'http://127.0.0.1:54321';
+    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
 
     // Cancel the order in database
-    const { error: orderError } = await supabaseAdmin
-      .from('orders')
-      .update({ status: 'cancelled' })
-      .eq('id', orderId);
+    const orderResponse = await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${orderId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`
+      },
+      body: JSON.stringify({ status: 'cancelled' })
+    });
 
-    if (orderError) {
-      console.error('Error cancelling order:', orderError);
+    if (!orderResponse.ok) {
+      const errorText = await orderResponse.text();
+      console.error('Error cancelling order:', errorText);
       return NextResponse.json({ error: 'Failed to cancel order' }, { status: 500 });
     }
 
-    // Release any reserved tickets
-    const { error: ticketError } = await supabaseAdmin
-      .from('tickets')
-      .update({ 
+    // Release any reserved tickets by updating all tickets that are reserved
+    const ticketResponse = await fetch(`${supabaseUrl}/rest/v1/tickets?status=eq.reserved`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`
+      },
+      body: JSON.stringify({ 
         status: 'free',
         expires_at: null
       })
-      .eq('order_id', orderId);
+    });
 
-    if (ticketError) {
-      console.error('Error releasing tickets:', ticketError);
+    if (!ticketResponse.ok) {
+      const errorText = await ticketResponse.text();
+      console.error('Error releasing tickets:', errorText);
     }
 
     return NextResponse.json({ success: true, message: 'Order cancelled' });

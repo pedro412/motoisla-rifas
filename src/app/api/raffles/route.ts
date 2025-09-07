@@ -1,91 +1,32 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
-import type { Database } from '@/lib/types';
-
-type RaffleInsert = Omit<Database['public']['Tables']['raffles']['Insert'], 'id' | 'created_at' | 'updated_at'>;
-
-// Use the default client for read operations
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const { data: raffles, error } = await supabase
-      .from('raffles')
-      .select('*')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false });
+    const supabaseUrl = 'http://127.0.0.1:54321';
+    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
 
-    if (error) {
-      console.error('Error fetching raffles:', error);
+    // Fetch active raffles ordered by created_at desc to get the latest first
+    const response = await fetch(`${supabaseUrl}/rest/v1/raffles?status=eq.active&order=created_at.desc`, {
+      method: 'GET',
+      headers: {
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error fetching raffles:', errorText);
       return NextResponse.json(
-        { error: 'Failed to fetch raffles', details: error.message },
+        { error: 'Failed to fetch raffles', details: errorText },
         { status: 500 }
       );
     }
 
+    const raffles = await response.json();
     return NextResponse.json(raffles || []);
   } catch (error) {
-    console.error('Unexpected error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    return NextResponse.json(
-      { error: 'Internal server error', details: errorMessage },
-      { status: 500 }
-    );
-  }
-}
-
-type CreateRaffleRequest = {
-  title: string;
-  description: string;
-  image_url?: string;
-  ticket_price: number | string;
-  total_tickets: number | string;
-  end_date: string;
-};
-
-export async function POST(request: NextRequest) {
-  try {
-    const body: CreateRaffleRequest = await request.json();
-    const { title, description, image_url, ticket_price, total_tickets, end_date } = body;
-    
-    // Validate required fields
-    if (!title || !description || ticket_price === undefined || total_tickets === undefined || !end_date) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Create a new raffle using the admin client to avoid RLS issues
-    const raffleData: RaffleInsert = {
-      title,
-      description,
-      image_url: image_url || null,
-      ticket_price: Number(ticket_price),
-      total_tickets: Number(total_tickets),
-      start_date: new Date().toISOString(),
-      end_date: new Date(end_date).toISOString(),
-      status: 'active',
-      winner_ticket_id: null,
-      draw_date: null,
-    };
-
-    const { data: raffle, error } = await (supabaseAdmin
-      .from('raffles')
-      .insert(raffleData as any) // Type assertion to bypass the type checking
-      .select()
-      .single());
-
-    if (error) {
-      console.error('Error creating raffle:', error);
-      return NextResponse.json(
-        { error: 'Failed to create raffle', details: error.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(raffle, { status: 201 });
-  } catch (error) {
-    console.error('Unexpected error:', error);
+    console.error('Unexpected error in GET /api/raffles:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return NextResponse.json(
       { error: 'Internal server error', details: errorMessage },

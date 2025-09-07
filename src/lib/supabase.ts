@@ -32,6 +32,14 @@ export const supabaseAdmin = createSupabaseClient<Database>(supabaseUrl, service
     headers: {
       'Content-Type': 'application/json',
     },
+    fetch: (url, options = {}) => {
+      // For local development, ensure we can connect to localhost
+      const modifiedOptions = {
+        ...options,
+        keepalive: false,
+      };
+      return fetch(url, modifiedOptions);
+    },
   },
 });
 

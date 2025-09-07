@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { ArrowLeft, Copy, CheckCircle, MessageCircle, CreditCard, Building2 } fr
 import { useReservationTimer } from '@/hooks/useReservationTimer';
 import { ReservationTimer } from '@/components/ui/ReservationTimer';
 import { createWhatsAppMessage } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 interface OrderData {
   orderId: string;
@@ -26,6 +27,7 @@ export default function CheckoutPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const [serverRemainingTime, setServerRemainingTime] = useState<number | undefined>(undefined);
+  const [lastSyncTime, setLastSyncTime] = useState<number>(0);
 
   const reservationTimer = useReservationTimer({
     onTimeout: () => {
@@ -33,20 +35,84 @@ export default function CheckoutPage() {
       localStorage.removeItem('currentOrder');
       router.push('/');
     },
-    duration: 15 // 15 minutes - don't pass initialTimeLeft here
+    duration: 15, // 15 minutes fallback
+    initialTimeLeft: serverRemainingTime // Pass server time when available
   });
 
-  // Sync timer with server time when it becomes available
-  useEffect(() => {
-    if (serverRemainingTime !== undefined) {
-      console.log('🔄 Syncing timer with server time:', serverRemainingTime, 'seconds');
-      // Clear any stale localStorage timer data first
-      localStorage.removeItem('reservationEndTime');
-      // Stop any existing timer, then start with server time
-      reservationTimer.stopTimer();
-      reservationTimer.startTimer(serverRemainingTime);
+  // Function to sync with server
+  const syncWithServer = useCallback(async (orderId: string) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}`);
+      if (response.ok) {
+        const { order, valid, expired } = await response.json();
+        
+        if (valid && !expired && order.remainingSeconds > 0) {
+          const now = Date.now();
+          // Only sync if it's been more than 30 seconds since last sync
+          if (now - lastSyncTime > 30000) {
+            console.log('🔄 Periodic sync - server time:', order.remainingSeconds, 'seconds');
+            setServerRemainingTime(order.remainingSeconds);
+            setLastSyncTime(now);
+          }
+        } else {
+          // Order expired, clean up
+          localStorage.removeItem('currentOrder');
+          alert('Tu orden ha expirado. Serás redirigido al inicio.');
+          router.push('/');
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing with server:', error);
     }
-  }, [serverRemainingTime, reservationTimer.startTimer, reservationTimer.stopTimer]);
+  }, [lastSyncTime, router]);
+
+  // The timer hook will automatically use serverRemainingTime when it changes
+
+  // Periodic sync with server every 30 seconds
+  useEffect(() => {
+    if (!orderData?.orderId) return;
+
+    const interval = setInterval(() => {
+      syncWithServer(orderData.orderId);
+    }, 30000); // Sync every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [orderData?.orderId, syncWithServer]);
+
+  // Supabase realtime subscription for order changes
+  useEffect(() => {
+    if (!orderData?.orderId) return;
+
+    const channel = supabase
+      .channel('order-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `id=eq.${orderData.orderId}`,
+        },
+        (payload) => {
+          console.log('🔔 Realtime order update:', payload);
+          const updatedOrder = payload.new as { status: string; id: string };
+          
+          if (updatedOrder.status === 'expired' || updatedOrder.status === 'cancelled') {
+            localStorage.removeItem('currentOrder');
+            alert('Tu orden ha sido cancelada o ha expirado. Serás redirigido al inicio.');
+            router.push('/');
+          } else if (updatedOrder.status === 'paid') {
+            alert('¡Pago confirmado! Tu orden ha sido procesada exitosamente.');
+            router.push('/');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [orderData?.orderId, router]);
 
   useEffect(() => {
     const initializeOrder = async () => {
@@ -60,7 +126,7 @@ export default function CheckoutPage() {
       const raffleName = searchParams.get('raffleName') || '';
 
       if (orderId && customerName && customerPhone && ticketNumbers.length > 0) {
-        // Fresh order from URL params
+        // Fresh order from URL params - validate with server to get real time
         const newOrderData = {
           orderId,
           customerName,
@@ -74,7 +140,33 @@ export default function CheckoutPage() {
         // Save to localStorage
         localStorage.setItem('currentOrder', JSON.stringify(newOrderData));
         setOrderData(newOrderData);
-        reservationTimer.startTimer();
+        
+        // Validate with server to get real remaining time
+        try {
+          const response = await fetch(`/api/orders/${orderId}`);
+          if (response.ok) {
+            const { order, valid, expired } = await response.json();
+            
+            if (valid && !expired && order.remainingSeconds > 0) {
+              console.log('⏰ Fresh order - using server remaining time:', order.remainingSeconds);
+              setServerRemainingTime(order.remainingSeconds);
+            } else {
+              // Order expired or invalid, clean up
+              localStorage.removeItem('currentOrder');
+              alert('Tu orden ha expirado o es inválida. Serás redirigido al inicio.');
+              router.push('/');
+              return;
+            }
+          } else {
+            // Fallback to 15 minutes if server validation fails
+            console.log('⚠️ Server validation failed, using fallback timer');
+            setServerRemainingTime(15 * 60); // 15 minutes in seconds
+          }
+        } catch (error) {
+          console.error('Error validating fresh order:', error);
+          // Fallback to 15 minutes if validation fails
+          setServerRemainingTime(15 * 60); // 15 minutes in seconds
+        }
         return;
       }
 

@@ -1,0 +1,144 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { status } = await request.json();
+    const orderId = params.id;
+
+    if (!orderId || !status) {
+      return NextResponse.json(
+        { error: 'Order ID and status are required' },
+        { status: 400 }
+      );
+    }
+
+    const supabaseUrl = 'http://127.0.0.1:54321';
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+
+    if (!serviceRoleKey) {
+      return NextResponse.json(
+        { error: 'Service role key not configured' },
+        { status: 500 }
+      );
+    }
+
+    // First, get the order details to know which tickets to update
+    const orderResponse = await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${orderId}&select=*`, {
+      headers: {
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!orderResponse.ok) {
+      return NextResponse.json(
+        { error: 'Order not found' },
+        { status: 404 }
+      );
+    }
+
+    const orders = await orderResponse.json();
+    const order = orders[0];
+
+    if (!order) {
+      return NextResponse.json(
+        { error: 'Order not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update the order status
+    const updateOrderResponse = await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${orderId}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({ 
+        status,
+        updated_at: new Date().toISOString()
+      })
+    });
+
+    if (!updateOrderResponse.ok) {
+      const errorText = await updateOrderResponse.text();
+      console.error('Error updating order:', errorText);
+      return NextResponse.json(
+        { error: 'Failed to update order' },
+        { status: 500 }
+      );
+    }
+
+    // If marking as paid, update ticket statuses to 'sold'
+    if (status === 'paid') {
+      const ticketNumbers = order.tickets;
+      const raffleId = order.raffle_id;
+
+      // Update all tickets in this order to 'paid' status
+      console.log(`Updating tickets ${ticketNumbers.join(',')} to paid status for raffle ${raffleId}`);
+      const updateTicketsResponse = await fetch(`${supabaseUrl}/rest/v1/tickets?raffle_id=eq.${raffleId}&number=in.(${ticketNumbers.join(',')})`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          status: 'paid',
+          paid_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+      });
+
+      if (!updateTicketsResponse.ok) {
+        const errorText = await updateTicketsResponse.text();
+        console.error('Error updating tickets:', errorText);
+        // Don't fail the whole operation, but log the error
+      }
+    }
+
+    // If marking as cancelled, release the tickets back to 'free'
+    if (status === 'cancelled') {
+      const ticketNumbers = order.tickets;
+      const raffleId = order.raffle_id;
+
+      const updateTicketsResponse = await fetch(`${supabaseUrl}/rest/v1/tickets?raffle_id=eq.${raffleId}&number=in.(${ticketNumbers.join(',')})`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': serviceRoleKey,
+          'Authorization': `Bearer ${serviceRoleKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          status: 'free',
+          updated_at: new Date().toISOString()
+        })
+      });
+
+      if (!updateTicketsResponse.ok) {
+        const errorText = await updateTicketsResponse.text();
+        console.error('Error releasing tickets:', errorText);
+      }
+    }
+
+    const updatedOrders = await updateOrderResponse.json();
+    
+    return NextResponse.json({
+      success: true,
+      order: updatedOrders[0]
+    });
+
+  } catch (error) {
+    console.error('Error in PATCH /api/admin/orders/[id]:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

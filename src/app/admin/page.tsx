@@ -1,26 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Shield, 
-  Users, 
-  Ticket, 
-  DollarSign, 
-  Clock, 
-  CheckCircle, 
-  XCircle,
-  Eye,
-  LogOut,
-  Plus,
-  List
-} from 'lucide-react';
+import { Shield, Users, Ticket, DollarSign, Plus, List, LogOut, Settings, Check, X, Eye, Clock, BarChart3 } from 'lucide-react';
 import CreateRaffleForm from '@/components/admin/CreateRaffleForm';
 import RafflesList from '@/components/admin/RafflesList';
+import AdminSettings from '@/components/admin/AdminSettings';
+import TicketManager from '@/components/admin/TicketManager';
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import { useUpdateOrderStatus } from '@/hooks/useApi';
 
 interface AdminStats {
   totalTickets: number;
@@ -37,7 +28,7 @@ interface Order {
   id: string;
   tickets: string[];
   total: number;
-  status: 'pending' | 'completed' | 'expired';
+  status: 'pending' | 'paid' | 'cancelled';
   created_at: string;
   payment_deadline: string;
   customer_name?: string;
@@ -46,14 +37,24 @@ interface Order {
 }
 
 export default function AdminDashboard() {
-  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'create-raffle' | 'manage-raffles'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'create-raffle' | 'manage-raffles' | 'tickets' | 'analytics' | 'settings'>('dashboard');
+  
+  const updateOrderStatus = useUpdateOrderStatus();
+
+  const handleUpdateOrderStatus = async (orderId: string, status: string) => {
+    try {
+      await updateOrderStatus.mutateAsync({ orderId, status });
+      fetchDashboardData(); // Refresh data after update
+    } catch (error) {
+      console.error('Failed to update order status:', error);
+    }
+  };
 
   // Check authentication on mount
   useEffect(() => {
@@ -189,7 +190,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
-              onClick={() => router.push('/')}
+              onClick={() => window.open('/', '_blank')}
               className="text-slate-300 hover:text-white"
             >
               <Eye className="h-4 w-4 mr-2" />
@@ -244,6 +245,39 @@ export default function AdminDashboard() {
           >
             <List className="h-4 w-4 mr-2" />
             Gestionar Rifas
+          </Button>
+          <Button
+            onClick={() => setActiveTab('tickets')}
+            variant={activeTab === 'tickets' ? 'default' : 'outline'}
+            className={activeTab === 'tickets' 
+              ? 'bg-blue-600 hover:bg-blue-700' 
+              : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+            }
+          >
+            <Ticket className="h-4 w-4 mr-2" />
+            Gestionar Boletos
+          </Button>
+          <Button
+            onClick={() => setActiveTab('analytics')}
+            variant={activeTab === 'analytics' ? 'default' : 'outline'}
+            className={activeTab === 'analytics' 
+              ? 'bg-blue-600 hover:bg-blue-700' 
+              : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+            }
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Analíticas
+          </Button>
+          <Button
+            onClick={() => setActiveTab('settings')}
+            variant={activeTab === 'settings' ? 'default' : 'outline'}
+            className={activeTab === 'settings' 
+              ? 'bg-blue-600 hover:bg-blue-700' 
+              : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+            }
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Configuración
           </Button>
         </div>
 
@@ -339,6 +373,7 @@ export default function AdminDashboard() {
                           <th className="text-left py-3 px-2 text-slate-300">Total</th>
                           <th className="text-left py-3 px-2 text-slate-300">Estado</th>
                           <th className="text-left py-3 px-2 text-slate-300">Fecha</th>
+                          <th className="text-left py-3 px-2 text-slate-300">Acciones</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -365,6 +400,43 @@ export default function AdminDashboard() {
                             <td className="py-3 px-2 text-slate-400 text-xs">
                               {formatDate(order.created_at)}
                             </td>
+                            <td className="py-3 px-2">
+                              <div className="flex gap-2">
+                                {order.status === 'pending' && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleUpdateOrderStatus(order.id, 'paid')}
+                                      disabled={updateOrderStatus.isPending}
+                                      className="bg-green-600 hover:bg-green-700 text-white"
+                                    >
+                                      <Check className="h-3 w-3 mr-1" />
+                                      Pagado
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleUpdateOrderStatus(order.id, 'cancelled')}
+                                      disabled={updateOrderStatus.isPending}
+                                      className="border-red-600 text-red-400 hover:bg-red-900/20"
+                                    >
+                                      <X className="h-3 w-3 mr-1" />
+                                      Cancelar
+                                    </Button>
+                                  </>
+                                )}
+                                {order.status === 'paid' && (
+                                  <Badge variant="default" className="bg-green-600">
+                                    Completado
+                                  </Badge>
+                                )}
+                                {order.status === 'cancelled' && (
+                                  <Badge variant="destructive">
+                                    Cancelado
+                                  </Badge>
+                                )}
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -387,6 +459,18 @@ export default function AdminDashboard() {
 
         {activeTab === 'manage-raffles' && (
           <RafflesList onRefresh={fetchDashboardData} />
+        )}
+
+        {activeTab === 'tickets' && (
+          <TicketManager />
+        )}
+
+        {activeTab === 'analytics' && (
+          <AnalyticsDashboard />
+        )}
+
+        {activeTab === 'settings' && (
+          <AdminSettings />
         )}
       </div>
     </div>

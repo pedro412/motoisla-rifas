@@ -39,16 +39,16 @@ export default function Home() {
           const response = await fetch(`/api/orders/${parsedOrder.orderId}`);
           
           if (response.ok) {
-            const { order, valid, expired } = await response.json();
+            const { order, valid, expired, paid } = await response.json();
             
-            if (valid && !expired) {
+            if (valid && !expired && !paid) {
               setActiveOrder(parsedOrder);
             } else {
-              // Order expired, clean up
+              // Order expired, paid, or invalid - clean up
               localStorage.removeItem('currentOrder');
             }
           } else {
-            // Order not found, clean up
+            // Order not found, cancelled, or expired - clean up
             localStorage.removeItem('currentOrder');
           }
         } catch (error) {

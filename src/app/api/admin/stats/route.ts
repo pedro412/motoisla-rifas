@@ -1,54 +1,54 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET() {
   try {
-    // Return mock stats if Supabase is not properly configured
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')) {
-      const mockStats = {
-        totalTickets: 500,
-        soldTickets: 0,
-        reservedTickets: 4, // From our test orders
-        availableTickets: 496,
-        totalOrders: 2,
-        pendingOrders: 2,
-        completedOrders: 0,
-        totalRevenue: 0
-      };
-      return NextResponse.json(mockStats);
+    // Use direct API calls to ensure consistency with other endpoints
+    const supabaseUrl = 'http://127.0.0.1:54321';
+    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+
+    // Get ticket statistics using direct API calls for consistency
+    const ticketsResponse = await fetch(`${supabaseUrl}/rest/v1/tickets?select=status`, {
+      method: 'GET',
+      headers: {
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`
+      }
+    });
+
+    if (!ticketsResponse.ok) {
+      throw new Error('Failed to fetch tickets');
     }
 
-    // Get ticket statistics
-    const { data: tickets, error: ticketsError } = await supabaseAdmin
-      .from('tickets')
-      .select('status');
+    const tickets = await ticketsResponse.json();
 
-    if (ticketsError) {
-      throw ticketsError;
+    // Get order statistics using direct API calls
+    const ordersResponse = await fetch(`${supabaseUrl}/rest/v1/orders?select=status,total_amount`, {
+      method: 'GET',
+      headers: {
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`
+      }
+    });
+
+    if (!ordersResponse.ok) {
+      throw new Error('Failed to fetch orders');
     }
 
-    // Get order statistics
-    const { data: orders, error: ordersError } = await supabaseAdmin
-      .from('orders')
-      .select('status, total');
-
-    if (ordersError) {
-      throw ordersError;
-    }
+    const orders = await ordersResponse.json();
 
     // Calculate ticket stats
     const totalTickets = tickets?.length || 0;
-    const soldTickets = tickets?.filter((t: any) => t.status === 'sold').length || 0;
-    const reservedTickets = tickets?.filter((t: any) => t.status === 'reserved').length || 0;
-    const availableTickets = tickets?.filter((t: any) => t.status === 'free').length || 0;
+    const soldTickets = tickets?.filter((t: { status: string }) => t.status === 'paid').length || 0;
+    const reservedTickets = tickets?.filter((t: { status: string }) => t.status === 'reserved').length || 0;
+    const availableTickets = tickets?.filter((t: { status: string }) => t.status === 'free').length || 0;
 
     // Calculate order stats
     const totalOrders = orders?.length || 0;
-    const pendingOrders = orders?.filter((o: any) => o.status === 'pending').length || 0;
-    const completedOrders = orders?.filter((o: any) => o.status === 'completed').length || 0;
+    const pendingOrders = orders?.filter((o: { status: string }) => o.status === 'pending').length || 0;
+    const completedOrders = orders?.filter((o: { status: string }) => o.status === 'paid').length || 0;
     const totalRevenue = orders
-      ?.filter((o: any) => o.status === 'completed')
-      .reduce((sum: number, order: any) => sum + (order.total || 0), 0) || 0;
+      ?.filter((o: { status: string }) => o.status === 'paid')
+      .reduce((sum: number, order: { total_amount: number }) => sum + (order.total_amount || 0), 0) || 0;
 
     const stats = {
       totalTickets,

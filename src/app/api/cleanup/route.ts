@@ -5,6 +5,31 @@ export async function POST(request: NextRequest) {
     const supabaseUrl = 'http://127.0.0.1:54321';
     const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
 
+    // Check if auto cleanup is enabled
+    const autoCleanupResponse = await fetch(`${supabaseUrl}/rest/v1/settings?key=eq.auto_cleanup_enabled&select=value`, {
+      method: 'GET',
+      headers: {
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`
+      }
+    });
+
+    let autoCleanupEnabled = true; // Default to enabled
+    if (autoCleanupResponse.ok) {
+      const settings = await autoCleanupResponse.json();
+      if (settings && settings.length > 0) {
+        autoCleanupEnabled = settings[0].value === 'true';
+      }
+    }
+
+    if (!autoCleanupEnabled) {
+      return NextResponse.json({
+        message: 'Auto cleanup is disabled',
+        releasedTickets: 0,
+        cancelledOrders: 0
+      });
+    }
+
     const now = new Date().toISOString();
     
     // Find all expired tickets (reserved tickets where expires_at < now)

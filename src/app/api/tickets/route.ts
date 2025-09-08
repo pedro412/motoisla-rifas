@@ -108,8 +108,25 @@ export async function POST(request: NextRequest) {
 
     const raffle = raffles[0];
 
-    // Create order with payment deadline (15 minutes from now to match frontend timer)
-    const paymentDeadline = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    // Get reservation timeout from settings
+    const settingsResponse = await fetch(`${supabaseUrl}/rest/v1/settings?key=eq.reservation_timeout_minutes&select=value`, {
+      method: 'GET',
+      headers: {
+        'apikey': serviceRoleKey,
+        'Authorization': `Bearer ${serviceRoleKey}`
+      }
+    });
+
+    let reservationTimeoutMinutes = 15; // Default fallback
+    if (settingsResponse.ok) {
+      const settings = await settingsResponse.json();
+      if (settings && settings.length > 0) {
+        reservationTimeoutMinutes = parseInt(settings[0].value) || 15;
+      }
+    }
+
+    // Create order with payment deadline using configurable timeout
+    const paymentDeadline = new Date(Date.now() + reservationTimeoutMinutes * 60 * 1000).toISOString();
 
     const orderData = {
       raffle_id: raffle_id,

@@ -36,6 +36,38 @@ export async function GET(
 
     const order = orders[0];
 
+    // Check if order is already paid
+    if (order.status === 'paid') {
+      return NextResponse.json({
+        order: {
+          id: order.id,
+          tickets: order.tickets,
+          total: order.total_amount,
+          status: order.status,
+          paymentDeadline: order.payment_deadline,
+          remainingSeconds: 0,
+          customerInfo: {
+            name: order.customer_name,
+            phone: order.customer_phone,
+            email: order.customer_email
+          },
+          createdAt: order.created_at
+        },
+        valid: true,
+        expired: false,
+        paid: true
+      });
+    }
+
+    // Check if order was cancelled
+    if (order.status === 'cancelled') {
+      return NextResponse.json({ 
+        error: 'Order has been cancelled',
+        cancelled: true,
+        valid: false
+      }, { status: 410 });
+    }
+
     // Check if order has expired
     const now = new Date();
     const paymentDeadline = new Date(order.payment_deadline);

@@ -6,8 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 interface ReservationTimerProps {
   timeLeft: string | null;
   isActive: boolean;
-  isExpired: boolean;
-  ticketCount: number;
+  isExpired?: boolean;
+  ticketCount?: number;
 }
 
 export function ReservationTimer({ timeLeft, isActive, isExpired, ticketCount }: ReservationTimerProps) {
@@ -30,7 +30,10 @@ export function ReservationTimer({ timeLeft, isActive, isExpired, ticketCount }:
     if (isExpired) {
       return 'Tu reservación ha expirado. Los boletos han sido liberados.';
     }
-    return `Tienes ${ticketCount} boleto${ticketCount > 1 ? 's' : ''} reservado${ticketCount > 1 ? 's' : ''}`;
+    if (ticketCount) {
+      return `Tienes ${ticketCount} boleto${ticketCount > 1 ? 's' : ''} reservado${ticketCount > 1 ? 's' : ''}`;
+    }
+    return 'Reservación activa';
   };
 
   return (

@@ -224,3 +224,15 @@ export interface OrderForm {
   email?: string;
   selectedTickets: number[];
 }
+
+export interface AdminSettings {
+  reservation_timeout: number;
+  max_tickets_per_order: number;
+  bank_name: string;
+  bank_account_holder: string;
+  bank_account_number: string;
+  bank_clabe: string;
+  whatsapp_number: string;
+  maintenance_mode: boolean;
+  auto_cleanup_enabled: boolean;
+}

@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Copy, CheckCircle, MessageCircle, CreditCard, Building2 } from 'lucide-react';
 import { useReservationTimer } from '@/hooks/useReservationTimer';
 import { ReservationTimer } from '@/components/ui/ReservationTimer';
-import { createWhatsAppMessage } from '@/lib/utils';
+import { createWhatsAppMessage, generateWhatsAppUrl } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { useOrder } from '@/hooks/useApi';
+import { useOrder, useSettings } from '@/hooks/useApi';
 
 interface OrderData {
   orderId: string;
@@ -27,9 +27,11 @@ export default function CheckoutPage() {
   const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<number>(0);
+  const [isPaymentConfirmed, setIsPaymentConfirmed] = useState<boolean>(false);
 
   const orderId = searchParams.get('orderId');
   const { data: orderResponse, isLoading, error } = useOrder(orderId);
+  const { data: settings } = useSettings();
   
   const [serverRemainingTime, setServerRemainingTime] = useState<number | undefined>(
     orderResponse?.order && typeof orderResponse.order === 'object' && 'remainingSeconds' in orderResponse.order 
@@ -50,7 +52,13 @@ export default function CheckoutPage() {
   // Function to sync with server using React Query data
   const syncWithServer = useCallback(() => {
     if (orderResponse && orderId) {
-      const { order, valid, expired } = orderResponse;
+      const { order, valid, expired, paid } = orderResponse;
+      
+      // Check if order is paid
+      if (paid || (order && typeof order === 'object' && 'status' in order && order.status === 'paid')) {
+        setIsPaymentConfirmed(true);
+        return;
+      }
       
       if (valid && !expired && order && typeof order === 'object' && 'remainingSeconds' in order) {
         const remainingSeconds = (order as { remainingSeconds: number }).remainingSeconds;
@@ -120,9 +128,7 @@ export default function CheckoutPage() {
               localStorage.removeItem('currentOrder');
               router.push('/');
             } else if (updatedOrder.status === 'paid') {
-              alert('¡Pago confirmado! Gracias por tu compra.');
-              localStorage.removeItem('currentOrder');
-              router.push('/');
+              setIsPaymentConfirmed(true);
             }
           }
         }
@@ -205,6 +211,9 @@ export default function CheckoutPage() {
     );
   }
 
+  // Get WhatsApp number from settings with fallback
+  const whatsappNumber = settings?.whatsapp_number?.value || '529381082435';
+  
   const whatsappMessage = createWhatsAppMessage({
     orderId: orderData.orderId,
     raffleName: orderData.raffleName,
@@ -217,6 +226,8 @@ export default function CheckoutPage() {
       clabe: '012345678901234567'
     }
   });
+
+  const whatsappUrl = generateWhatsAppUrl(whatsappNumber, whatsappMessage);
 
   if (isLoading) {
     return (
@@ -256,7 +267,9 @@ export default function CheckoutPage() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Regresar
           </Button>
-          <h1 className="text-2xl font-bold text-white">Proceso de Pago</h1>
+          <h1 className="text-2xl font-bold text-white">
+            {isPaymentConfirmed ? 'Comprobante de Pago' : 'Proceso de Pago'}
+          </h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -320,31 +333,97 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Timer */}
-              <div className="bg-yellow-900/20 border border-yellow-600 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-yellow-300 text-sm font-medium">⏰ Tiempo restante:</span>
+              {/* Payment Status */}
+              {isPaymentConfirmed ? (
+                <div className="bg-green-900/20 border border-green-600 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="h-6 w-6 text-green-400" />
+                    <span className="text-green-300 text-lg font-semibold">¡Pago Confirmado!</span>
+                  </div>
+                  <p className="text-green-200 text-sm">
+                    Tu pago ha sido verificado y confirmado. Tus boletos están asegurados.
+                  </p>
+                  <div className="mt-3 p-3 bg-green-800/30 rounded-lg">
+                    <p className="text-green-100 text-sm font-medium">
+                      📧 Guarda esta página como comprobante de tu compra
+                    </p>
+                  </div>
                 </div>
-                <ReservationTimer 
-                  timeLeft={reservationTimer.timeLeft}
-                  isActive={reservationTimer.isActive}
-                />
-                <p className="text-yellow-300 text-xs mt-2">
-                  Tu reservación expirará automáticamente si no completas el pago a tiempo.
-                </p>
-              </div>
+              ) : (
+                <div className="bg-yellow-900/20 border border-yellow-600 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-yellow-300 text-sm font-medium">⏰ Tiempo restante:</span>
+                  </div>
+                  <ReservationTimer 
+                    timeLeft={reservationTimer.formatTime}
+                    isActive={reservationTimer.isActive}
+                    isExpired={reservationTimer.isExpired}
+                  />
+                  <p className="text-yellow-300 text-xs mt-2">
+                    Tu reservación expirará automáticamente si no completas el pago a tiempo.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Payment Instructions */}
+          {/* Payment Instructions or Confirmation */}
           <Card className="bg-slate-800/50 border-slate-700">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-blue-400" />
-                Instrucciones de Pago
+                {isPaymentConfirmed ? (
+                  <>
+                    <CheckCircle className="h-5 w-5 text-green-400" />
+                    Pago Completado
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="h-5 w-5 text-blue-400" />
+                    Instrucciones de Pago
+                  </>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {isPaymentConfirmed ? (
+                <div className="text-center py-8">
+                  <div className="mb-6">
+                    <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-green-300 mb-2">
+                      ¡Pago Confirmado Exitosamente!
+                    </h3>
+                    <p className="text-slate-300 mb-4">
+                      Tu pago ha sido verificado y procesado correctamente.
+                    </p>
+                  </div>
+                  
+                  <div className="bg-green-900/20 border border-green-600 rounded-lg p-4 text-left">
+                    <h4 className="font-medium text-green-300 mb-2">Detalles de la Transacción:</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-300">Estado:</span>
+                        <span className="text-green-400 font-medium">PAGADO</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-300">Fecha de confirmación:</span>
+                        <span className="text-white">{new Date().toLocaleDateString('es-MX')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-300">Boletos asegurados:</span>
+                        <span className="text-white">{orderData.ticketNumbers.length}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 p-4 bg-blue-900/20 border border-blue-600 rounded-lg">
+                    <p className="text-blue-200 text-sm">
+                      📱 <strong>Importante:</strong> Guarda esta página como comprobante. 
+                      Puedes tomar una captura de pantalla o imprimir esta página para tus registros.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
               {/* Bank Transfer */}
               <div className="bg-slate-900/50 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -481,7 +560,7 @@ export default function CheckoutPage() {
                   Una vez realizada la transferencia, envía tu comprobante por WhatsApp para confirmar tu pago.
                 </p>
                 <Button
-                  onClick={() => window.open(whatsappMessage, '_blank')}
+                  onClick={() => window.open(whatsappUrl, '_blank')}
                   className="w-full bg-green-600 hover:bg-green-700 text-white"
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
@@ -499,6 +578,8 @@ export default function CheckoutPage() {
                   <li>• Tu reservación expira en el tiempo mostrado arriba</li>
                 </ul>
               </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

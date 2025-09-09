@@ -33,8 +33,7 @@ export default function AdminSettings() {
     if (localSettings[key] !== undefined) {
       try {
         await updateSettingMutation.mutateAsync({
-          key,
-          value: localSettings[key]
+          [key]: localSettings[key]
         });
         setLocalSettings(prev => {
           const updated = { ...prev };
@@ -52,7 +51,7 @@ export default function AdminSettings() {
   const handleSaveAll = async () => {
     try {
       for (const [key, value] of Object.entries(localSettings)) {
-        await updateSettingMutation.mutateAsync({ key, value });
+        await updateSettingMutation.mutateAsync({ [key]: value });
       }
       setLocalSettings({});
       setHasChanges(false);

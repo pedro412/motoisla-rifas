@@ -163,9 +163,9 @@ export async function GET(request: NextRequest) {
       dailyStats,
       hourlyStats: [], // Could be implemented later
       customerStats: {
-        totalCustomers: uniqueCustomers.size,
-        repeatCustomers,
-        averageTicketsPerCustomer
+        totalCustomers: customerStats.uniqueCustomers.size,
+        repeatCustomers: customerStats.repeatCustomers,
+        averageTicketsPerCustomer: customerStats.averageTicketsPerCustomer
       },
       paymentStats
     };
@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
       totalOrders,
       conversionRate: conversionRate.toFixed(1) + '%',
       ticketsSold,
-      uniqueCustomers: uniqueCustomers.size
+      uniqueCustomers: customerStats.uniqueCustomers.size
     });
 
     return NextResponse.json(analytics);

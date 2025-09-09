@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     // Create CSV content
     const csvContent = [
       csvHeaders.join(','),
-      ...csvRows.map(row => row.map(field => `"${field}"`).join(','))
+      ...csvRows.map((row: (string | number)[]) => row.map(field => `"${field}"`).join(','))
     ].join('\n');
 
     // Return CSV file

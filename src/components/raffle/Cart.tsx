@@ -15,9 +15,9 @@ interface CartProps {
 
 // Mock cart data for now
 const mockCartItems: CartItem[] = [
-  { ticketId: "ticket-7", ticketNumber: 7, price: 50 },
-  { ticketId: "ticket-77", ticketNumber: 77, price: 50 },
-  { ticketId: "ticket-123", ticketNumber: 123, price: 50 },
+  { id: "ticket-7", ticketNumber: 7, price: 50, quantity: 1 },
+  { id: "ticket-77", ticketNumber: 77, price: 50, quantity: 1 },
+  { id: "ticket-123", ticketNumber: 123, price: 50, quantity: 1 },
 ];
 
 export function Cart({ items = mockCartItems, onRemoveItem, onCheckout }: CartProps) {
@@ -47,12 +47,18 @@ export function Cart({ items = mockCartItems, onRemoveItem, onCheckout }: CartPr
       const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       
       // Create WhatsApp message
-      const whatsappMessage = createWhatsAppMessage(
-        "Casco AGV Pista GP RR - Edición Limitada",
+      const whatsappMessage = createWhatsAppMessage({
+        raffleName: "Casco AGV Pista GP RR - Edición Limitada",
         ticketNumbers,
-        total,
-        orderId
-      );
+        totalAmount: total,
+        orderId,
+        bankInfo: {
+          bankName: "BBVA",
+          accountHolder: "Moto Isla",
+          accountNumber: "1234567890",
+          clabe: "0123456789012345678"
+        }
+      });
       
       // WhatsApp number (from env or default)
       const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "521234567890";
@@ -107,7 +113,7 @@ export function Cart({ items = mockCartItems, onRemoveItem, onCheckout }: CartPr
               {/* Cart Items */}
               <div className="space-y-2">
                 {items.map((item) => (
-                  <div key={item.ticketId} className="flex items-center justify-between p-3 bg-slate-800/50 border border-slate-700 rounded-lg">
+                  <div key={item.id} className="flex items-center justify-between p-3 bg-slate-800/50 border border-slate-700 rounded-lg">
                     <div>
                       <span className="font-medium text-slate-200">Boleto #{item.ticketNumber}</span>
                       <div className="text-sm text-slate-400">
@@ -117,7 +123,7 @@ export function Cart({ items = mockCartItems, onRemoveItem, onCheckout }: CartPr
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleRemoveItem(item.ticketId)}
+                      onClick={() => handleRemoveItem(item.id)}
                       className="text-red-400 hover:text-red-300 hover:bg-red-900/30"
                     >
                       <Trash2 className="h-4 w-4" />

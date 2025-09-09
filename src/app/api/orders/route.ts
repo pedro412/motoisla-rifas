@@ -56,12 +56,14 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Order ID and status are required' }, { status: 400 });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = { status };
     if (payment_proof_url) {
       updateData.payment_proof_url = payment_proof_url;
     }
 
-    const { data: order, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: order, error } = await (supabase as any)
       .from('orders')
       .update(updateData)
       .eq('id', order_id)
@@ -75,7 +77,8 @@ export async function PATCH(request: NextRequest) {
 
     // If order is confirmed, update ticket status to paid
     if (status === 'confirmed') {
-      const { error: ticketError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: ticketError } = await (supabase as any)
         .from('tickets')
         .update({ status: 'paid' })
         .eq('order_id', order_id);

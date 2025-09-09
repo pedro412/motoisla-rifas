@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { CartItem } from '@/lib/types';
 
-export function useCart(raffleId?: string) {
+export function useCart(raffleId?: string, maxTicketsPerUser: number = 20) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -10,6 +10,11 @@ export function useCart(raffleId?: string) {
       const exists = prev.find(item => item.ticketNumber === ticketNumber);
       if (exists) return prev;
       
+      // Check if adding this ticket would exceed the maximum limit
+      if (prev.length >= maxTicketsPerUser) {
+        return prev;
+      }
+      
       return [...prev, {
         id: `ticket-${ticketNumber}`,
         ticketNumber,
@@ -17,7 +22,7 @@ export function useCart(raffleId?: string) {
         quantity: 1
       }];
     });
-  }, []);
+  }, [maxTicketsPerUser]);
 
   const removeTicket = useCallback((ticketNumber: number) => {
     setCartItems(prev => prev.filter(item => item.ticketNumber !== ticketNumber));
@@ -30,6 +35,10 @@ export function useCart(raffleId?: string) {
         // Remove if already selected
         return prev.filter(item => item.ticketNumber !== ticketNumber);
       } else {
+        // Check if adding this ticket would exceed the maximum limit
+        if (prev.length >= maxTicketsPerUser) {
+          return prev;
+        }
         // Add if not selected
         return [...prev, {
           id: `ticket-${ticketNumber}`,
@@ -39,7 +48,7 @@ export function useCart(raffleId?: string) {
         }];
       }
     });
-  }, []);
+  }, [maxTicketsPerUser]);
 
   const isTicketSelected = useCallback((ticketNumber: number) => {
     return cartItems.some(item => item.ticketNumber === ticketNumber);
@@ -57,8 +66,8 @@ export function useCart(raffleId?: string) {
     return cartItems.map(item => item.ticketNumber);
   }, [cartItems]);
 
-  const submitOrder = async (customerInfo: { name: string; phone: string; email?: string }) => {
-    if (cartItems.length === 0) return null;
+  const submitOrder = async (customerInfo: { name: string; phone?: string; email?: string }) => {
+    if (cartItems.length === 0) return { success: false, error: 'No hay boletos en el carrito' };
 
     setIsSubmitting(true);
     try {

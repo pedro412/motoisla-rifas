@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { RaffleHeader } from '@/components/raffle/RaffleHeader';
-import { TicketGrid } from '@/components/raffle/TicketGridSimple';
+import { TicketGrid } from '@/components/raffle/TicketGrid';
 import { Cart } from '@/components/raffle/CartSimple';
 import { useRaffle } from '@/hooks/useRaffle';
 import { useCart } from '@/hooks/useCart';
@@ -23,7 +23,7 @@ interface ActiveOrder {
 
 export default function Home() {
   const { raffle, tickets, loading, error, refreshTickets } = useRaffle();
-  const cart = useCart(raffle?.id);
+  const cart = useCart(raffle?.id, raffle?.max_tickets_per_user || 20);
   const router = useRouter();
   const [activeOrder, setActiveOrder] = useState<ActiveOrder | null>(null);
 
@@ -39,7 +39,7 @@ export default function Home() {
           const response = await fetch(`/api/orders/${parsedOrder.orderId}`);
           
           if (response.ok) {
-            const { order, valid, expired, paid } = await response.json();
+            const { valid, expired, paid } = await response.json();
             
             if (valid && !expired && !paid) {
               setActiveOrder(parsedOrder);
@@ -96,10 +96,10 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mb-4"></div>
-          <p className="text-white text-xl">Cargando rifa...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-500 mb-4 moto-red-glow"></div>
+          <p className="text-white text-xl">🏍️ Cargando rifa...</p>
         </div>
       </div>
     );
@@ -107,10 +107,10 @@ export default function Home() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-400 text-xl mb-4">Error: {error}</p>
-          <p className="text-slate-300">
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center moto-card p-8 rounded-lg">
+          <p className="moto-text-primary text-xl mb-4">⚠️ Error: {error}</p>
+          <p className="moto-text-secondary">
             Asegúrate de que tu archivo .env.local esté configurado correctamente
           </p>
         </div>
@@ -120,39 +120,42 @@ export default function Home() {
 
   if (!raffle) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-white text-xl">No hay rifas activas en este momento</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center moto-card p-8 rounded-lg">
+          <p className="text-white text-xl">🏍️ No hay rifas activas en este momento</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            🏍️ Moto Isla Raffle
+        <div className="text-center mb-8 moto-racing-stripe">
+          <h1 className="text-5xl font-bold text-white mb-2 moto-red-glow">
+            🏍️ MOTO ISLA
           </h1>
-          <p className="text-slate-300">
+          <h2 className="text-2xl font-semibold moto-text-primary mb-2">
+            RAFFLE
+          </h2>
+          <p className="moto-text-secondary text-lg">
             Rifas de productos motociclistas de las mejores marcas
           </p>
         </div>
         
         {/* Active Order Notification */}
         {activeOrder && (
-          <Card className="mb-6 bg-amber-900/20 border-amber-600">
+          <Card className="mb-6 moto-card moto-border">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-amber-400" />
+                  <Clock className="h-5 w-5 moto-text-primary" />
                   <div>
-                    <p className="text-amber-300 font-medium">
+                    <p className="moto-text-primary font-medium">
                       Tienes un pago pendiente
                     </p>
-                    <p className="text-amber-200 text-sm">
+                    <p className="moto-text-secondary text-sm">
                       Boletos {activeOrder.ticketNumbers.join(', ')} - ${activeOrder.totalAmount}
                     </p>
                   </div>
@@ -160,7 +163,7 @@ export default function Home() {
                 <div className="flex gap-2">
                   <Button
                     onClick={handleContinuePayment}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    className="moto-button-primary text-white"
                     size="sm"
                   >
                     <CreditCard className="h-4 w-4 mr-1" />
@@ -169,7 +172,7 @@ export default function Home() {
                   <Button
                     onClick={handleCancelOrder}
                     variant="outline"
-                    className="border-amber-600 text-amber-300 hover:bg-amber-900/30"
+                    className="moto-border moto-text-secondary hover:bg-red-900/30"
                     size="sm"
                   >
                     Cancelar

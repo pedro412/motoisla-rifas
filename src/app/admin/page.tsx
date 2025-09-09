@@ -147,12 +147,12 @@ export default function AdminDashboard() {
   // Login form
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <Card className="w-full max-w-md bg-slate-800 border-slate-700">
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md moto-card moto-border moto-red-glow">
           <CardHeader className="text-center">
             <CardTitle className="text-white flex items-center justify-center gap-2">
-              <Shield className="h-6 w-6" />
-              Admin Dashboard
+              <Shield className="h-6 w-6 moto-text-primary" />
+              🏍️ MOTO ISLA Admin
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -163,7 +163,7 @@ export default function AdminDashboard() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-                className="bg-slate-700 border-slate-600 text-white"
+                className="moto-card moto-border text-white"
               />
             </div>
             {error && (
@@ -172,9 +172,9 @@ export default function AdminDashboard() {
             <Button
               onClick={handleLogin}
               disabled={loading || !password}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full moto-button-primary text-white"
             >
-              {loading ? 'Verificando...' : 'Ingresar'}
+              {loading ? '🏍️ Verificando...' : '🏁 Ingresar'}
             </Button>
           </CardContent>
         </Card>
@@ -183,101 +183,101 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 moto-racing-stripe">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               onClick={() => window.open('/', '_blank')}
-              className="text-slate-300 hover:text-white"
+              className="moto-text-secondary hover:text-white"
             >
               <Eye className="h-4 w-4 mr-2" />
-              Ver Sitio
+              🏍️ Ver Sitio
             </Button>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-              <Shield className="h-8 w-8" />
-              Admin Dashboard
+            <h1 className="text-4xl font-bold text-white flex items-center gap-2 moto-red-glow">
+              <Shield className="h-8 w-8 moto-text-primary" />
+              MOTO ISLA Admin
             </h1>
           </div>
           <Button
             onClick={handleLogout}
             variant="outline"
-            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            className="moto-border moto-text-secondary hover:bg-red-900/30"
           >
             <LogOut className="h-4 w-4 mr-2" />
-            Cerrar Sesión
+            🏁 Cerrar Sesión
           </Button>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex gap-2 mb-8">
+        <div className="flex gap-2 mb-8 flex-wrap">
           <Button
             onClick={() => setActiveTab('dashboard')}
             variant={activeTab === 'dashboard' ? 'default' : 'outline'}
             className={activeTab === 'dashboard' 
-              ? 'bg-blue-600 hover:bg-blue-700' 
-              : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+              ? 'moto-button-primary text-white' 
+              : 'moto-border moto-text-secondary hover:bg-red-900/30'
             }
           >
             <Shield className="h-4 w-4 mr-2" />
-            Dashboard
+            📊 Dashboard
           </Button>
           <Button
             onClick={() => setActiveTab('create-raffle')}
             variant={activeTab === 'create-raffle' ? 'default' : 'outline'}
             className={activeTab === 'create-raffle' 
-              ? 'bg-blue-600 hover:bg-blue-700' 
-              : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+              ? 'moto-button-primary text-white' 
+              : 'moto-border moto-text-secondary hover:bg-red-900/30'
             }
           >
             <Plus className="h-4 w-4 mr-2" />
-            Crear Rifa
+            ➕ Crear Rifa
           </Button>
           <Button
             onClick={() => setActiveTab('manage-raffles')}
             variant={activeTab === 'manage-raffles' ? 'default' : 'outline'}
             className={activeTab === 'manage-raffles' 
-              ? 'bg-blue-600 hover:bg-blue-700' 
-              : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+              ? 'moto-button-primary text-white' 
+              : 'moto-border moto-text-secondary hover:bg-red-900/30'
             }
           >
             <List className="h-4 w-4 mr-2" />
-            Gestionar Rifas
+            📋 Gestionar Rifas
           </Button>
           <Button
             onClick={() => setActiveTab('tickets')}
             variant={activeTab === 'tickets' ? 'default' : 'outline'}
             className={activeTab === 'tickets' 
-              ? 'bg-blue-600 hover:bg-blue-700' 
-              : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+              ? 'moto-button-primary text-white' 
+              : 'moto-border moto-text-secondary hover:bg-red-900/30'
             }
           >
             <Ticket className="h-4 w-4 mr-2" />
-            Gestionar Boletos
+            🎫 Gestionar Boletos
           </Button>
           <Button
             onClick={() => setActiveTab('analytics')}
             variant={activeTab === 'analytics' ? 'default' : 'outline'}
             className={activeTab === 'analytics' 
-              ? 'bg-blue-600 hover:bg-blue-700' 
-              : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+              ? 'moto-button-primary text-white' 
+              : 'moto-border moto-text-secondary hover:bg-red-900/30'
             }
           >
             <BarChart3 className="h-4 w-4 mr-2" />
-            Analíticas
+            📈 Analíticas
           </Button>
           <Button
             onClick={() => setActiveTab('settings')}
             variant={activeTab === 'settings' ? 'default' : 'outline'}
             className={activeTab === 'settings' 
-              ? 'bg-blue-600 hover:bg-blue-700' 
-              : 'border-slate-600 text-slate-300 hover:bg-slate-700'
+              ? 'moto-button-primary text-white' 
+              : 'moto-border moto-text-secondary hover:bg-red-900/30'
             }
           >
             <Settings className="h-4 w-4 mr-2" />
-            Configuración
+            ⚙️ Configuración
           </Button>
         </div>
 
@@ -287,11 +287,11 @@ export default function AdminDashboard() {
             {/* Stats Cards */}
             {stats && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="moto-card moto-border">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-400 text-sm">Boletos Vendidos</p>
+                        <p className="moto-text-secondary text-sm">🎫 Boletos Vendidos</p>
                         <p className="text-2xl font-bold text-white">{stats.soldTickets}</p>
                       </div>
                       <Ticket className="h-8 w-8 text-green-400" />
@@ -299,36 +299,36 @@ export default function AdminDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="moto-card moto-border">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-400 text-sm">Boletos Reservados</p>
+                        <p className="moto-text-secondary text-sm">⏰ Boletos Reservados</p>
                         <p className="text-2xl font-bold text-white">{stats.reservedTickets}</p>
                       </div>
-                      <Clock className="h-8 w-8 text-yellow-400" />
+                      <Clock className="h-8 w-8 moto-text-primary" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="moto-card moto-border">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-400 text-sm">Órdenes Pendientes</p>
+                        <p className="moto-text-secondary text-sm">📄 Órdenes Pendientes</p>
                         <p className="text-2xl font-bold text-white">{stats.pendingOrders}</p>
                       </div>
-                      <Users className="h-8 w-8 text-blue-400" />
+                      <Users className="h-8 w-8 moto-text-primary" />
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-800/50 border-slate-700">
+                <Card className="moto-card moto-border moto-red-glow">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-400 text-sm">Ingresos Totales</p>
-                        <p className="text-2xl font-bold text-white">{formatCurrency(stats.totalRevenue)}</p>
+                        <p className="moto-text-secondary text-sm">💰 Ingresos Totales</p>
+                        <p className="text-2xl font-bold moto-text-primary">{formatCurrency(stats.totalRevenue)}</p>
                       </div>
                       <DollarSign className="h-8 w-8 text-green-400" />
                     </div>
@@ -338,17 +338,17 @@ export default function AdminDashboard() {
             )}
 
             {/* Orders Table */}
-            <Card className="bg-slate-800/50 border-slate-700">
+            <Card className="moto-card moto-border">
               <CardHeader>
                 <CardTitle className="text-white flex items-center justify-between">
-                  <span>Órdenes Recientes</span>
+                  <span>📋 Órdenes Recientes</span>
                   <Button
                     onClick={fetchDashboardData}
                     variant="outline"
                     size="sm"
-                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    className="moto-border moto-text-secondary hover:bg-red-900/30"
                   >
-                    Actualizar
+                    🔄 Actualizar
                   </Button>
                 </CardTitle>
               </CardHeader>

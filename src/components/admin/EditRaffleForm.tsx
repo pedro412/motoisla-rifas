@@ -7,24 +7,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Plus, Calendar, DollarSign, Hash, ImageIcon, Users } from 'lucide-react';
+import { Edit, Calendar, DollarSign, Hash, ImageIcon, Users, X } from 'lucide-react';
 import { raffleSchema, type RaffleFormData } from '@/lib/validations';
-import { useCreateRaffle } from '@/hooks/useApi';
+import { useRaffle, useUpdateRaffle } from '@/hooks/useApi';
+import { useEffect } from 'react';
 
-
-interface CreateRaffleFormProps {
+interface EditRaffleFormProps {
+  raffleId: string;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export default function CreateRaffleForm({ onSuccess, onCancel }: CreateRaffleFormProps) {
-  const createRaffleMutation = useCreateRaffle();
+export default function EditRaffleForm({ raffleId, onSuccess, onCancel }: EditRaffleFormProps) {
+  const { data: raffle, isLoading } = useRaffle(raffleId);
+  const updateRaffleMutation = useUpdateRaffle();
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    reset
+    setValue
   } = useForm<RaffleFormData>({
     resolver: zodResolver(raffleSchema),
     defaultValues: {
@@ -38,10 +40,28 @@ export default function CreateRaffleForm({ onSuccess, onCancel }: CreateRaffleFo
     }
   });
 
+  // Populate form when raffle data is loaded
+  useEffect(() => {
+    if (raffle) {
+      setValue('title', raffle.title);
+      setValue('description', raffle.description);
+      setValue('image_url', raffle.image_url || '');
+      setValue('ticket_price', raffle.ticket_price);
+      setValue('total_tickets', raffle.total_tickets);
+      setValue('max_tickets_per_user', raffle.max_tickets_per_user);
+      
+      // Format draw_date for datetime-local input
+      if (raffle.draw_date) {
+        const drawDate = new Date(raffle.draw_date);
+        const formattedDate = drawDate.toISOString().slice(0, 16);
+        setValue('draw_date', formattedDate);
+      }
+    }
+  }, [raffle, setValue]);
+
   const onSubmit = (data: RaffleFormData) => {
-    createRaffleMutation.mutate(data, {
+    updateRaffleMutation.mutate({ raffleId, data }, {
       onSuccess: () => {
-        reset();
         if (onSuccess) {
           onSuccess();
         }
@@ -49,13 +69,53 @@ export default function CreateRaffleForm({ onSuccess, onCancel }: CreateRaffleFo
     });
   };
 
+  if (isLoading) {
+    return (
+      <Card className="bg-slate-800/50 border-slate-700">
+        <CardContent className="p-6">
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="text-slate-400">Cargando rifa...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!raffle) {
+    return (
+      <Card className="bg-slate-800/50 border-slate-700">
+        <CardContent className="p-6">
+          <div className="text-center py-8">
+            <p className="text-red-400">Rifa no encontrada</p>
+            <Button onClick={onCancel} className="mt-4">
+              Volver
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="bg-slate-800/50 border-slate-700">
       <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <Plus className="h-5 w-5" />
-          Crear Nueva Rifa
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-white flex items-center gap-2">
+            <Edit className="h-5 w-5" />
+            Editar Rifa
+          </CardTitle>
+          {onCancel && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onCancel}
+              className="text-slate-400 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -185,12 +245,23 @@ export default function CreateRaffleForm({ onSuccess, onCancel }: CreateRaffleFo
             )}
           </div>
 
-          {createRaffleMutation.error && (
+          {/* Warning about ticket changes */}
+          <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-3">
+            <p className="text-yellow-400 text-sm">
+              <strong>⚠️ Importante:</strong> Si cambias el número total de boletos:
+            </p>
+            <ul className="text-yellow-300 text-sm mt-2 space-y-1">
+              <li>• Si aumentas: se crearán nuevos boletos disponibles</li>
+              <li>• Si disminuyes: solo se eliminarán boletos libres (no vendidos/reservados)</li>
+            </ul>
+          </div>
+
+          {updateRaffleMutation.error && (
             <div className="bg-red-900/20 border border-red-700 rounded-lg p-3">
               <p className="text-red-400 text-sm">
-                {createRaffleMutation.error instanceof Error 
-                  ? createRaffleMutation.error.message 
-                  : 'Error al crear la rifa'
+                {updateRaffleMutation.error instanceof Error 
+                  ? updateRaffleMutation.error.message 
+                  : 'Error al actualizar la rifa'
                 }
               </p>
             </div>
@@ -200,11 +271,11 @@ export default function CreateRaffleForm({ onSuccess, onCancel }: CreateRaffleFo
           <div className="flex gap-3 pt-4">
             <Button
               type="submit"
-              disabled={createRaffleMutation.isPending}
-              className="bg-green-600 hover:bg-green-700 text-white disabled:bg-slate-600"
+              disabled={updateRaffleMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-slate-600"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              {createRaffleMutation.isPending ? 'Creando...' : 'Crear Rifa'}
+              <Edit className="h-4 w-4 mr-2" />
+              {updateRaffleMutation.isPending ? 'Actualizando...' : 'Actualizar Rifa'}
             </Button>
             {onCancel && (
               <Button

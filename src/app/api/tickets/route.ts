@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseConfig } from '@/lib/supabase-config';
+import { ticketOrderSchema } from '@/lib/validation';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,20 +11,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Raffle ID is required' }, { status: 400 });
     }
 
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
-
     // First, clean up any expired tickets before fetching
     try {
       const now = new Date().toISOString();
       
       // Release expired tickets back to 'free' status
-      await fetch(`${supabaseUrl}/rest/v1/tickets?status=eq.reserved&expires_at=lt.${now}`, {
+      await fetch(`${supabaseConfig.url}/rest/v1/tickets?status=eq.reserved&expires_at=lt.${now}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          'apikey': serviceRoleKey,
-          'Authorization': `Bearer ${serviceRoleKey}`
+          ...supabaseConfig.headers,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           status: 'free',
@@ -31,12 +29,11 @@ export async function GET(request: NextRequest) {
       });
 
       // Cancel expired orders
-      await fetch(`${supabaseUrl}/rest/v1/orders?status=eq.pending&payment_deadline=lt.${now}`, {
+      await fetch(`${supabaseConfig.url}/rest/v1/orders?status=eq.pending&payment_deadline=lt.${now}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
-          'apikey': serviceRoleKey,
-          'Authorization': `Bearer ${serviceRoleKey}`
+          ...supabaseConfig.headers,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           status: 'expired'
@@ -47,12 +44,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch tickets for the specific raffle ordered by number
-    const response = await fetch(`${supabaseUrl}/rest/v1/tickets?raffle_id=eq.${raffleId}&order=number.asc`, {
+    const response = await fetch(`${supabaseConfig.url}/rest/v1/tickets?raffle_id=eq.${raffleId}&order=number.asc`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+      headers: supabaseConfig.headers
     });
 
     if (!response.ok) {
@@ -72,27 +66,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { raffle_id, ticket_numbers, customer_name, customer_phone, customer_email } = body;
-
-    if (!raffle_id || !ticket_numbers || !Array.isArray(ticket_numbers) || ticket_numbers.length === 0) {
-      return NextResponse.json({ error: 'Invalid request data' }, { status: 400 });
-    }
-
-    if (!customer_name || !customer_phone) {
-      return NextResponse.json({ error: 'Customer name and phone are required' }, { status: 400 });
-    }
-
-
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+    
+    // Validate and sanitize input
+    const validatedData = ticketOrderSchema.parse(body);
+    const { raffle_id, ticket_numbers, customer_name, customer_phone, customer_email } = validatedData;
 
     // Get raffle info to calculate total
-    const raffleResponse = await fetch(`${supabaseUrl}/rest/v1/raffles?id=eq.${raffle_id}&select=ticket_price`, {
+    const raffleResponse = await fetch(`${supabaseConfig.url}/rest/v1/raffles?id=eq.${raffle_id}&select=ticket_price`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+      headers: supabaseConfig.headers
     });
 
     if (!raffleResponse.ok) {
@@ -109,12 +91,9 @@ export async function POST(request: NextRequest) {
     const raffle = raffles[0];
 
     // Get reservation timeout from settings
-    const settingsResponse = await fetch(`${supabaseUrl}/rest/v1/settings?key=eq.reservation_timeout_minutes&select=value`, {
+    const settingsResponse = await fetch(`${supabaseConfig.url}/rest/v1/settings?key=eq.reservation_timeout_minutes&select=value`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+      headers: supabaseConfig.headers
     });
 
     let reservationTimeoutMinutes = 15; // Default fallback
@@ -140,12 +119,10 @@ export async function POST(request: NextRequest) {
       proof_url: null // Will be set when payment proof is uploaded
     };
     
-    const orderResponse = await fetch(`${supabaseUrl}/rest/v1/orders`, {
+    const orderResponse = await fetch(`${supabaseConfig.url}/rest/v1/orders`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`,
+        ...supabaseConfig.headers,
         'Prefer': 'return=representation'
       },
       body: JSON.stringify(orderData)
@@ -169,12 +146,10 @@ export async function POST(request: NextRequest) {
 
     // Build the query to update only free tickets with the specified numbers for this raffle
     const ticketNumbers = ticket_numbers.join(',');
-    const ticketUpdateResponse = await fetch(`${supabaseUrl}/rest/v1/tickets?raffle_id=eq.${raffle_id}&number=in.(${ticketNumbers})&status=eq.free`, {
+    const ticketUpdateResponse = await fetch(`${supabaseConfig.url}/rest/v1/tickets?raffle_id=eq.${raffle_id}&number=in.(${ticketNumbers})&status=eq.free`, {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json',
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`,
+        ...supabaseConfig.headers,
         'Prefer': 'return=representation'
       },
       body: JSON.stringify(ticketUpdateData)
@@ -185,12 +160,9 @@ export async function POST(request: NextRequest) {
       console.error('Error reserving tickets:', errorText);
       
       // Rollback order if ticket reservation fails
-      await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${order.id}`, {
+      await fetch(`${supabaseConfig.url}/rest/v1/orders?id=eq.${order.id}`, {
         method: 'DELETE',
-        headers: {
-          'apikey': serviceRoleKey,
-          'Authorization': `Bearer ${serviceRoleKey}`
-        }
+        headers: supabaseConfig.headers
       });
       
       return NextResponse.json({ error: 'Failed to reserve tickets', details: errorText }, { status: 500 });
@@ -200,12 +172,9 @@ export async function POST(request: NextRequest) {
 
     if (!updatedTickets || updatedTickets.length !== ticket_numbers.length) {
       // Some tickets were already taken
-      await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${order.id}`, {
+      await fetch(`${supabaseConfig.url}/rest/v1/orders?id=eq.${order.id}`, {
         method: 'DELETE',
-        headers: {
-          'apikey': serviceRoleKey,
-          'Authorization': `Bearer ${serviceRoleKey}`
-        }
+        headers: supabaseConfig.headers
       });
       
       return NextResponse.json({ error: 'Some tickets are no longer available' }, { status: 409 });

@@ -32,6 +32,7 @@ const api = {
         end_date: endDate.toISOString(),
         ticket_price: data.ticket_price,
         total_tickets: data.total_tickets,
+        max_tickets_per_user: data.max_tickets_per_user,
         draw_date: drawDate ? drawDate.toISOString() : null
       }),
     });
@@ -42,6 +43,46 @@ const api = {
     }
 
     return response.json();
+  },
+
+  async updateRaffle(raffleId: string, data: RaffleFormData): Promise<Raffle> {
+    const drawDate = data.draw_date ? new Date(data.draw_date) : null;
+    const now = new Date();
+    const endDate = drawDate || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    
+    const response = await fetch(`/api/admin/raffles/${raffleId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: data.title,
+        description: data.description,
+        image_url: data.image_url || null,
+        start_date: now.toISOString(),
+        end_date: endDate.toISOString(),
+        ticket_price: data.ticket_price,
+        total_tickets: data.total_tickets,
+        max_tickets_per_user: data.max_tickets_per_user,
+        draw_date: drawDate ? drawDate.toISOString() : null
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update raffle');
+    }
+
+    return response.json();
+  },
+
+  async getRaffle(raffleId: string): Promise<Raffle> {
+    const response = await fetch(`/api/admin/raffles/${raffleId}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch raffle');
+    }
+    const data = await response.json();
+    return data.raffle;
   },
 
   async deleteRaffle(raffleId: string): Promise<void> {
@@ -133,6 +174,27 @@ export function useDeleteRaffle() {
   
   return useMutation({
     mutationFn: api.deleteRaffle,
+    onSuccess: () => {
+      // Invalidate and refetch raffles list
+      queryClient.invalidateQueries({ queryKey: queryKeys.raffles });
+    },
+  });
+}
+
+export function useRaffle(raffleId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.raffle(raffleId!),
+    queryFn: () => api.getRaffle(raffleId!),
+    enabled: !!raffleId,
+  });
+}
+
+export function useUpdateRaffle() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ raffleId, data }: { raffleId: string; data: RaffleFormData }) => 
+      api.updateRaffle(raffleId, data),
     onSuccess: () => {
       // Invalidate and refetch raffles list
       queryClient.invalidateQueries({ queryKey: queryKeys.raffles });

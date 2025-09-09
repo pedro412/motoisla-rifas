@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyAdminRequest } from '@/lib/auth';
+import { supabaseConfig } from '@/lib/supabase-config';
+import { sanitizedRaffleSchema } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify admin authentication
+    if (!verifyAdminRequest(request)) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
+    
+    // Validate and sanitize input
+    const validatedData = sanitizedRaffleSchema.parse(body);
     const {
       title,
       description,
@@ -11,23 +25,13 @@ export async function POST(request: NextRequest) {
       end_date,
       ticket_price,
       total_tickets,
+      max_tickets_per_user,
       draw_date
-    } = body;
+    } = validatedData;
 
-    console.log('Received raffle data:', body);
+    console.log('Received raffle data:', validatedData);
 
-    // Validate required fields
-    if (!title || !description || !start_date || !end_date || !ticket_price || !total_tickets) {
-      return NextResponse.json(
-        { error: 'Faltan campos requeridos' },
-        { status: 400 }
-      );
-    }
-
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
-
-    // Create the raffle using direct API call
+    // Create the raffle using direct API call with secure config
     const raffleData = {
       title,
       description,
@@ -36,16 +40,15 @@ export async function POST(request: NextRequest) {
       end_date,
       ticket_price,
       total_tickets,
+      max_tickets_per_user,
       draw_date: draw_date || null,
       status: 'active'
     };
 
-    const raffleResponse = await fetch(`${supabaseUrl}/rest/v1/raffles`, {
+    const raffleResponse = await fetch(`${supabaseConfig.url}/rest/v1/raffles`, {
       method: 'POST',
       headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json',
+        ...supabaseConfig.headers,
         'Prefer': 'return=representation'
       },
       body: JSON.stringify(raffleData)
@@ -72,13 +75,9 @@ export async function POST(request: NextRequest) {
       status: 'free'
     }));
 
-    const ticketsResponse = await fetch(`${supabaseUrl}/rest/v1/tickets`, {
+    const ticketsResponse = await fetch(`${supabaseConfig.url}/rest/v1/tickets`, {
       method: 'POST',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json'
-      },
+      headers: supabaseConfig.headers,
       body: JSON.stringify(tickets)
     });
 
@@ -87,12 +86,9 @@ export async function POST(request: NextRequest) {
       console.error('Error creating tickets:', errorText);
       
       // If ticket creation fails, delete the raffle
-      await fetch(`${supabaseUrl}/rest/v1/raffles?id=eq.${raffle.id}`, {
+      await fetch(`${supabaseConfig.url}/rest/v1/raffles?id=eq.${raffle.id}`, {
         method: 'DELETE',
-        headers: {
-          'apikey': serviceRoleKey,
-          'Authorization': `Bearer ${serviceRoleKey}`
-        }
+        headers: supabaseConfig.headers
       });
       
       return NextResponse.json(
@@ -122,17 +118,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+    // Verify admin authentication
+    if (!verifyAdminRequest(request)) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
-    const response = await fetch(`${supabaseUrl}/rest/v1/raffles?select=id,title,description,image_url,start_date,end_date,ticket_price,total_tickets,draw_date,status,created_at,updated_at&order=created_at.desc`, {
+    const response = await fetch(`${supabaseConfig.url}/rest/v1/raffles?select=id,title,description,image_url,start_date,end_date,ticket_price,total_tickets,max_tickets_per_user,draw_date,status,created_at,updated_at&order=created_at.desc`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+      headers: supabaseConfig.headers
     });
 
     if (!response.ok) {

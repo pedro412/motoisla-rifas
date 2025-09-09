@@ -71,11 +71,11 @@ export function Cart({ raffle, cart, onOrderComplete }: CartProps) {
 
   return (
     <>
-      <Card className="bg-slate-800/50 border-slate-700">
+      <Card className="moto-card moto-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
-            <ShoppingCart className="h-5 w-5" />
-            Carrito ({cart.itemCount})
+            <ShoppingCart className="h-5 w-5 moto-text-primary" />
+            🛒 Carrito ({cart.itemCount})
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -83,15 +83,15 @@ export function Cart({ raffle, cart, onOrderComplete }: CartProps) {
         {cart.cartItems.length > 0 ? (
           <div className="space-y-2 max-h-32 overflow-y-auto">
             {cart.cartItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-2 bg-slate-800/50 rounded">
-                <span className="text-sm">Boleto #{item.ticketNumber}</span>
+              <div key={item.id} className="flex items-center justify-between p-2 moto-card moto-border rounded">
+                <span className="text-sm text-white">🎫 Boleto #{item.ticketNumber}</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{formatCurrency(item.price)}</span>
+                  <span className="text-sm font-medium moto-text-primary">{formatCurrency(item.price)}</span>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => cart.removeTicket(item.ticketNumber)}
-                    className="h-6 w-6 p-0 hover:bg-red-900/30"
+                    className="h-6 w-6 p-0 hover:bg-red-900/30 moto-text-primary"
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -100,19 +100,19 @@ export function Cart({ raffle, cart, onOrderComplete }: CartProps) {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-slate-400">
-            <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p>Tu carrito está vacío</p>
+          <div className="text-center py-8 moto-text-secondary">
+            <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50 moto-text-primary" />
+            <p>🏍️ Tu carrito está vacío</p>
             <p className="text-sm">Selecciona números para comenzar</p>
           </div>
         )}
 
         {/* Total */}
         {cart.cartItems.length > 0 && (
-          <div className="border-t border-slate-700 pt-4">
+          <div className="border-t moto-border pt-4">
             <div className="flex justify-between items-center font-semibold text-lg">
-              <span>Total:</span>
-              <span className="text-green-400">{formatCurrency(cart.getTotalPrice())}</span>
+              <span className="text-white">💰 Total:</span>
+              <span className="moto-text-primary text-xl font-bold">{formatCurrency(cart.getTotalPrice())}</span>
             </div>
           </div>
         )}
@@ -121,16 +121,16 @@ export function Cart({ raffle, cart, onOrderComplete }: CartProps) {
         <Button
           onClick={() => setShowCheckoutDialog(true)}
           disabled={cart.cartItems.length === 0}
-          className="w-full bg-green-600 hover:bg-green-700 text-white"
+          className="w-full moto-button-primary text-white font-semibold"
         >
           <CreditCard className="h-4 w-4 mr-2" />
-          Proceder al Checkout
+          🏁 Proceder al Checkout
         </Button>
 
         {/* Instructions */}
-        <div className="bg-slate-800/50 border border-slate-700 p-3 rounded-lg text-sm">
-          <h4 className="font-medium mb-2 text-slate-200">Siguiente paso</h4>
-          <p className="text-slate-300">
+        <div className="moto-card moto-border p-3 rounded-lg text-sm">
+          <h4 className="font-medium mb-2 text-white">🏍️ Siguiente paso</h4>
+          <p className="moto-text-secondary">
             Selecciona tus boletos y procede al checkout para completar tu información y realizar el pago.
           </p>
         </div>

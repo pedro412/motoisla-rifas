@@ -15,6 +15,7 @@ export const raffleSchema = z.object({
   description: z.string().min(1, 'La descripción es requerida').max(1000, 'La descripción es muy larga'),
   ticket_price: z.number().min(1, 'El precio debe ser mayor a 0').max(10000, 'El precio es muy alto'),
   total_tickets: z.number().min(1, 'Debe haber al menos 1 boleto').max(10000, 'Máximo 10,000 boletos'),
+  max_tickets_per_user: z.number().min(1, 'Debe permitir al menos 1 boleto por usuario').max(1000, 'Límite muy alto por usuario'),
   draw_date: z.string().min(1, 'La fecha del sorteo es requerida'),
   image_url: z.string().url('URL de imagen inválida').optional().or(z.literal(''))
 }).refine((data) => {
@@ -24,6 +25,11 @@ export const raffleSchema = z.object({
 }, {
   message: 'La fecha del sorteo debe ser en el futuro',
   path: ['draw_date']
+}).refine((data) => {
+  return data.max_tickets_per_user <= data.total_tickets;
+}, {
+  message: 'El límite por usuario no puede ser mayor al total de boletos',
+  path: ['max_tickets_per_user']
 });
 
 // Login/Authentication schema

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,9 +11,11 @@ import {
   Eye, 
   Edit, 
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Users
 } from 'lucide-react';
 import { useRaffles, useDeleteRaffle } from '@/hooks/useApi';
+import EditRaffleForm from './EditRaffleForm';
 
 
 interface RafflesListProps {
@@ -22,6 +25,7 @@ interface RafflesListProps {
 export default function RafflesList({ onRefresh }: RafflesListProps) {
   const { data: raffles = [], isLoading: loading, error, refetch } = useRaffles();
   const deleteRaffleMutation = useDeleteRaffle();
+  const [editingRaffleId, setEditingRaffleId] = useState<string | null>(null);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -69,6 +73,20 @@ export default function RafflesList({ onRefresh }: RafflesListProps) {
     }
   };
 
+  const handleEditRaffle = (raffleId: string) => {
+    setEditingRaffleId(raffleId);
+  };
+
+  const handleEditSuccess = () => {
+    setEditingRaffleId(null);
+    refetch();
+    onRefresh?.();
+  };
+
+  const handleEditCancel = () => {
+    setEditingRaffleId(null);
+  };
+
   if (loading) {
     return (
       <Card className="bg-slate-800/50 border-slate-700">
@@ -96,6 +114,17 @@ export default function RafflesList({ onRefresh }: RafflesListProps) {
           </div>
         </CardContent>
       </Card>
+    );
+  }
+
+  // Show edit form if editing
+  if (editingRaffleId) {
+    return (
+      <EditRaffleForm
+        raffleId={editingRaffleId}
+        onSuccess={handleEditSuccess}
+        onCancel={handleEditCancel}
+      />
     );
   }
 
@@ -150,7 +179,7 @@ export default function RafflesList({ onRefresh }: RafflesListProps) {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                   <div className="flex items-center gap-2 text-slate-300">
                     <DollarSign className="h-4 w-4" />
                     <span className="text-sm">{formatCurrency(raffle.ticket_price)}</span>
@@ -158,6 +187,10 @@ export default function RafflesList({ onRefresh }: RafflesListProps) {
                   <div className="flex items-center gap-2 text-slate-300">
                     <Hash className="h-4 w-4" />
                     <span className="text-sm">{raffle.total_tickets} boletos</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <Users className="h-4 w-4" />
+                    <span className="text-sm">Máx: {raffle.max_tickets_per_user}</span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-300">
                     <Calendar className="h-4 w-4" />
@@ -190,6 +223,7 @@ export default function RafflesList({ onRefresh }: RafflesListProps) {
                   <Button
                     size="sm"
                     variant="outline"
+                    onClick={() => handleEditRaffle(raffle.id)}
                     className="border-slate-600 text-slate-300 hover:bg-slate-600"
                   >
                     <Edit className="h-4 w-4 mr-2" />

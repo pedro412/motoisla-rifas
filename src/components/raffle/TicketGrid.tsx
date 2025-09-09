@@ -1,51 +1,84 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Search, Shuffle, Grid, List } from 'lucide-react';
+import { TicketCounter } from '@/components/ui/ticket-counter';
+import { Progress } from '@/components/ui/progress';
+import { Shuffle, Grid, TrendingUp } from 'lucide-react';
 import { Raffle, Ticket } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
+interface CartItem {
+  id: string;
+  ticketNumber: number;
+  price: number;
+  quantity: number;
+}
+
+interface Cart {
+  cartItems: CartItem[];
+  toggleTicket: (ticketNumber: number, price: number) => void;
+  addTicket: (ticketNumber: number, price: number) => void;
+  removeTicket: (ticketNumber: number) => void;
+  clearCart: () => void;
+  getTotalPrice: () => number;
+  getTicketNumbers: () => number[];
+  itemCount: number;
+}
 
 interface TicketGridProps {
   raffle: Raffle;
   tickets: Ticket[];
-  cart: any;
+  cart: Cart;
   onTicketsChange: () => void;
 }
 
 type TicketStatus = 'free' | 'reserved' | 'paid';
 
-// Mock data generator
-const generateMockTickets = (): Ticket[] => {
-  return Array.from({ length: 100 }, (_, i) => ({
-    id: `ticket-${i + 1}`,
-    raffle_id: 'mock-raffle-1',
-    number: i + 1,
-    status: Math.random() > 0.7 ? (Math.random() > 0.5 ? 'reserved' : 'paid') : 'free',
-    expires_at: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }));
-};
 
 export function TicketGrid({ raffle, tickets, cart, onTicketsChange }: TicketGridProps) {
   const [searchNumber, setSearchNumber] = useState('');
+  const [ticketCount, setTicketCount] = useState(1);
 
   const handleTicketClick = (ticket: Ticket) => {
-    if (ticket.status === 'free' && cart?.toggleTicket) {
+    if (ticket.status === 'free' && cart.toggleTicket) {
       cart.toggleTicket(ticket.number, raffle.ticket_price);
       onTicketsChange();
     }
   };
 
-  const handleRandomSelect = () => {
+  const handleRandomSelect = (count: number) => {
     const availableTickets = tickets.filter(t => t.status === 'free');
-    if (availableTickets.length > 0 && cart?.toggleTicket) {
-      const randomTicket = availableTickets[Math.floor(Math.random() * availableTickets.length)];
-      cart.toggleTicket(randomTicket.number, raffle.ticket_price);
-      onTicketsChange();
-    }
+    const selectedTickets = cart.getTicketNumbers();
+    const unselectedAvailable = availableTickets.filter(t => !selectedTickets.includes(t.number));
+    
+    if (unselectedAvailable.length === 0) return;
+    
+    // Calculate how many tickets we can actually select
+    const currentCount = cart.itemCount;
+    const maxAllowed = Math.min(
+      raffle.max_tickets_per_user,
+      count,
+      unselectedAvailable.length
+    );
+    const canSelect = Math.min(maxAllowed, raffle.max_tickets_per_user - currentCount);
+    
+    if (canSelect <= 0) return;
+    
+    // Randomly select tickets
+    const shuffled = [...unselectedAvailable].sort(() => Math.random() - 0.5);
+    const toSelect = shuffled.slice(0, canSelect);
+    
+    toSelect.forEach(ticket => {
+      cart.addTicket(ticket.number, raffle.ticket_price);
+    });
+    
+    onTicketsChange();
+  };
+
+  const handleSingleRandomSelect = () => {
+    handleRandomSelect(1);
   };
 
   const getTicketStatusColor = (status: TicketStatus, isSelected: boolean) => {
@@ -74,45 +107,95 @@ export function TicketGrid({ raffle, tickets, cart, onTicketsChange }: TicketGri
     sold: tickets.filter(t => t.status === 'paid').length,
   };
 
-  const selectedTicketNumbers = cart?.cartItems?.map((item: any) => item.ticketNumber) || [];
+  const selectedTicketNumbers = cart.cartItems.map((item) => item.ticketNumber) || [];
+
+  const salesProgress = ((stats.reserved + stats.sold) / stats.total) * 100;
 
   return (
-    <Card>
+    <Card className="moto-card moto-border">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Grid className="h-5 w-5" />
-            Selecciona tus Boletos
-          </CardTitle>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Grid className="h-5 w-5 moto-text-primary" />
+              Selecciona tus Boletos
+            </CardTitle>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSingleRandomSelect}
+                className="flex items-center gap-2 moto-border hover:moto-red-glow"
+              >
+                <Shuffle className="h-4 w-4" />
+                Aleatorio
+              </Button>
+            </div>
+          </div>
+
+          {/* Sales Progress */}
+          <div className="moto-card moto-border p-4 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 moto-text-primary" />
+                Progreso de Ventas
+              </h3>
+              <span className="text-sm moto-text-secondary">
+                {Math.round(salesProgress)}% vendido
+              </span>
+            </div>
+            <Progress 
+              value={salesProgress} 
+              className="h-3 moto-border bg-black/40"
+            />
+            <div className="flex justify-between text-xs moto-text-secondary mt-2">
+              <span>{stats.reserved + stats.sold} vendidos</span>
+              <span>{stats.total} total</span>
+            </div>
+          </div>
           
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRandomSelect}
-              className="flex items-center gap-2"
-            >
-              <Shuffle className="h-4 w-4" />
-              Aleatorio
-            </Button>
+          {/* Ticket Counter Section */}
+          <div className="flex flex-col gap-3 p-4 moto-card moto-border rounded-lg">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-white">Selección Rápida</h3>
+              <span className="text-xs moto-text-secondary">
+                Seleccionados: {cart.itemCount} / {raffle.max_tickets_per_user}
+              </span>
+            </div>
+            
+            <TicketCounter
+              value={ticketCount}
+              onChange={setTicketCount}
+              max={raffle.max_tickets_per_user - cart.itemCount}
+              availableTickets={stats.available}
+              onRandomSelect={handleRandomSelect}
+              disabled={cart.itemCount >= raffle.max_tickets_per_user}
+            />
+            
+            {cart.itemCount >= raffle.max_tickets_per_user && (
+              <p className="text-xs text-yellow-400">
+                Has alcanzado el límite máximo de {raffle.max_tickets_per_user} boletos por usuario
+              </p>
+            )}
           </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-          <div className="text-center p-3 bg-slate-800/50 border border-slate-700 rounded-lg">
-            <div className="text-2xl font-bold text-slate-200">{stats.total}</div>
-            <div className="text-sm text-slate-400">Total</div>
+          <div className="text-center p-3 moto-card moto-border rounded-lg">
+            <div className="text-2xl font-bold text-white">{stats.total}</div>
+            <div className="text-sm moto-text-secondary">Total</div>
           </div>
-          <div className="text-center p-3 bg-green-900/30 border border-green-800 rounded-lg">
+          <div className="text-center p-3 moto-card moto-border bg-green-900/20 rounded-lg">
             <div className="text-2xl font-bold text-green-300">{stats.available}</div>
             <div className="text-sm text-green-400">Disponibles</div>
           </div>
-          <div className="text-center p-3 bg-yellow-900/30 border border-yellow-800 rounded-lg">
+          <div className="text-center p-3 moto-card moto-border bg-yellow-900/20 rounded-lg">
             <div className="text-2xl font-bold text-yellow-300">{stats.reserved}</div>
             <div className="text-sm text-yellow-400">Reservados</div>
           </div>
-          <div className="text-center p-3 bg-red-900/30 border border-red-800 rounded-lg">
+          <div className="text-center p-3 moto-card moto-border bg-red-900/20 rounded-lg">
             <div className="text-2xl font-bold text-red-300">{stats.sold}</div>
             <div className="text-sm text-red-400">Vendidos</div>
           </div>
@@ -125,7 +208,7 @@ export function TicketGrid({ raffle, tickets, cart, onTicketsChange }: TicketGri
             placeholder="Buscar número de boleto..."
             value={searchNumber}
             onChange={(e) => setSearchNumber(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 text-slate-200 placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 moto-card moto-border text-white placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:moto-red-glow"
           />
         </div>
       </CardHeader>

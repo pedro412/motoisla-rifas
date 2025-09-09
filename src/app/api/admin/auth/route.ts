@@ -1,21 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { validateAdminPassword, generateAdminToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
     const { password } = await request.json();
     
-    // Check against environment variable
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    
-    if (!adminPassword) {
+    if (!password || typeof password !== 'string') {
       return NextResponse.json(
-        { error: 'Admin password not configured' },
-        { status: 500 }
+        { error: 'Password is required' },
+        { status: 400 }
       );
     }
     
-    if (password === adminPassword) {
-      return NextResponse.json({ success: true });
+    if (validateAdminPassword(password)) {
+      const token = generateAdminToken();
+      
+      const response = NextResponse.json({ success: true, token });
+      
+      // Set secure HTTP-only cookie
+      response.cookies.set('admin-token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60, // 24 hours
+        path: '/'
+      });
+      
+      return response;
     } else {
       return NextResponse.json(
         { error: 'Invalid password' },

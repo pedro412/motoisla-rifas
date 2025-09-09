@@ -12,6 +12,7 @@ export interface Database {
           end_date: string;
           ticket_price: number;
           total_tickets: number;
+          max_tickets_per_user: number;
           winner_ticket_id: string | null;
           draw_date: string | null;
           status: 'active' | 'completed' | 'cancelled';
@@ -27,6 +28,7 @@ export interface Database {
           end_date: string;
           ticket_price: number;
           total_tickets: number;
+          max_tickets_per_user: number;
           winner_ticket_id?: string | null;
           draw_date?: string | null;
           status?: 'active' | 'completed' | 'cancelled';
@@ -42,6 +44,7 @@ export interface Database {
           end_date?: string;
           ticket_price?: number;
           total_tickets?: number;
+          max_tickets_per_user?: number;
           winner_ticket_id?: string | null;
           draw_date?: string | null;
           status?: 'active' | 'completed' | 'cancelled';
@@ -216,6 +219,7 @@ export interface CreateRaffleForm {
   endDate: string;
   ticketPrice: number;
   totalTickets: number;
+  maxTicketsPerUser: number;
 }
 
 export interface OrderForm {

@@ -1,7 +1,8 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { ENV } from './env';
 
-const CSRF_SECRET = process.env.CSRF_SECRET || 'csrf-secret-key';
+const CSRF_SECRET = ENV.CSRF_SECRET;
 
 export function generateCSRFToken(): string {
   return crypto.randomBytes(32).toString('hex');
@@ -39,15 +40,39 @@ export function validateCSRFForRequest(request: NextRequest): boolean {
   // Skip CSRF for GET requests
   if (request.method === 'GET') return true;
   
-  // Skip CSRF for same-origin requests (basic check)
+  // Check for same-origin policy
   const origin = request.headers.get('origin');
   const host = request.headers.get('host');
+  const referer = request.headers.get('referer');
   
+  // Allow same-origin requests
   if (origin && host && origin.includes(host)) {
     return true;
   }
   
-  // For now, we'll implement a basic same-origin policy
-  // In production, you'd want proper CSRF tokens
+  // Allow requests with referer from same host
+  if (referer && host && referer.includes(host)) {
+    return true;
+  }
+  
+  // Check for CSRF token in header
+  const csrfToken = getCSRFTokenFromRequest(request);
+  if (csrfToken) {
+    // For now, just validate token exists - in production you'd validate against session
+    return csrfToken.length > 0;
+  }
+  
   return false;
+}
+
+export function createCSRFMiddleware() {
+  return (request: NextRequest) => {
+    if (!validateCSRFForRequest(request)) {
+      return NextResponse.json(
+        { error: 'CSRF validation failed' },
+        { status: 403 }
+      );
+    }
+    return null; // Continue processing
+  };
 }

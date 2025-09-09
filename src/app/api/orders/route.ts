@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { SecurityUtils, validateRequest, CreateOrderSchema } from '@/lib/security';
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,6 +8,10 @@ export async function GET(request: NextRequest) {
     const orderId = searchParams.get('order_id');
 
     if (orderId) {
+      // Validate UUID format
+      if (!SecurityUtils.isValidUUID(orderId)) {
+        return NextResponse.json({ error: 'Invalid order ID format' }, { status: 400 });
+      }
       // Get specific order with tickets
       const { data: order, error } = await supabase
         .from('orders')
@@ -52,8 +57,14 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { order_id, status, payment_proof_url } = body;
 
-    if (!order_id || !status) {
-      return NextResponse.json({ error: 'Order ID and status are required' }, { status: 400 });
+    // Validate input
+    if (!order_id || !SecurityUtils.isValidUUID(order_id)) {
+      return NextResponse.json({ error: 'Valid order ID is required' }, { status: 400 });
+    }
+
+    const validStatuses = ['pending', 'paid', 'cancelled'];
+    if (!status || !validStatuses.includes(status)) {
+      return NextResponse.json({ error: 'Valid status is required (pending, paid, cancelled)' }, { status: 400 });
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency, createWhatsAppMessage, generateWhatsAppUrl } from "@/lib/utils";
 import { ShoppingCart, Trash2, MessageCircle, CreditCard } from "lucide-react";
 import { CartItem } from "@/lib/types";
+import { BANK_INFO, ENV } from "@/lib/env";
 
 interface CartProps {
   items?: CartItem[];
@@ -41,20 +42,15 @@ export function Cart({ items = [], onRemoveItem, onCheckout }: CartProps) {
       
       // Create WhatsApp message
       const whatsappMessage = createWhatsAppMessage({
-        raffleName: "Casco AGV Pista GP RR - Edición Limitada",
+        raffleName: ENV.SITE_NAME,
         ticketNumbers,
         totalAmount: total,
         orderId,
-        bankInfo: {
-          bankName: "BBVA",
-          accountHolder: "Moto Isla",
-          accountNumber: "1234567890",
-          clabe: "0123456789012345678"
-        }
+        bankInfo: BANK_INFO
       });
       
-      // WhatsApp number (from env or default)
-      const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "521234567890";
+      // WhatsApp number (from env)
+      const whatsappNumber = ENV.WHATSAPP_NUMBER;
       const whatsappUrl = generateWhatsAppUrl(whatsappNumber, whatsappMessage);
       
       // Open WhatsApp
@@ -76,12 +72,7 @@ export function Cart({ items = [], onRemoveItem, onCheckout }: CartProps) {
     }
   };
 
-  const bankInfo = {
-    bankName: "BBVA Bancomer",
-    accountHolder: "Moto Isla S.A. de C.V.",
-    accountNumber: "0123456789",
-    clabe: "012345678901234567"
-  };
+  const bankInfo = BANK_INFO;
 
   return (
     <div className="space-y-4">

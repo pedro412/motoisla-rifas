@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import { CartItem } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
+import { ENV } from '@/lib/env';
 
 export function useCart(raffleId?: string, maxTicketsPerUser: number = 20) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -101,7 +103,7 @@ export function useCart(raffleId?: string, maxTicketsPerUser: number = 20) {
         customerEmail: customerInfo.email,
         ticketNumbers: cartItems.map(item => item.ticketNumber),
         totalAmount: getTotalPrice(),
-        raffleName: 'Moto Isla Raffle'
+        raffleName: ENV.SITE_NAME
       };
       
       localStorage.setItem('currentOrder', JSON.stringify(orderData));

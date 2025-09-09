@@ -10,6 +10,7 @@ import { ReservationTimer } from '@/components/ui/ReservationTimer';
 import { createWhatsAppMessage, generateWhatsAppUrl } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useOrder, useSettings } from '@/hooks/useApi';
+import { BANK_INFO, ENV } from '@/lib/env';
 
 interface OrderData {
   orderId: string;
@@ -212,19 +213,14 @@ function CheckoutContent() {
   }
 
   // Get WhatsApp number from settings with fallback
-  const whatsappNumber = settings?.whatsapp_number?.value || '529381082435';
+  const whatsappNumber = settings?.whatsapp_number?.value || ENV.WHATSAPP_NUMBER;
   
   const whatsappMessage = createWhatsAppMessage({
     orderId: orderData.orderId,
     raffleName: orderData.raffleName,
     ticketNumbers: orderData.ticketNumbers,
     totalAmount: orderData.totalAmount,
-    bankInfo: {
-      bankName: 'BBVA Bancomer',
-      accountHolder: 'Moto Isla Raffle',
-      accountNumber: '0123456789',
-      clabe: '012345678901234567'
-    }
+    bankInfo: BANK_INFO
   });
 
   const whatsappUrl = generateWhatsAppUrl(whatsappNumber, whatsappMessage);
@@ -435,17 +431,17 @@ function CheckoutContent() {
                   <div>
                     <label className="text-slate-300 block mb-1">Banco:</label>
                     <div className="flex items-center justify-between bg-slate-800 rounded px-3 py-2">
-                      <span className="text-white">BBVA Bancomer</span>
+                      <span className="text-white">{BANK_INFO.bankName}</span>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => copyToClipboard('BBVA Bancomer', 'bank')}
+                        onClick={() => copyToClipboard(BANK_INFO.bankName, 'bank')}
                         className="h-6 w-6 p-0"
                       >
                         {copiedField === 'bank' ? (
-                          <CheckCircle className="h-4 w-4 text-green-400" />
+                          <CheckCircle className="h-3 w-3 text-green-400" />
                         ) : (
-                          <Copy className="h-4 w-4" />
+                          <Copy className="h-3 w-3" />
                         )}
                       </Button>
                     </div>
@@ -454,11 +450,11 @@ function CheckoutContent() {
                   <div>
                     <label className="text-slate-300 block mb-1">Número de Cuenta:</label>
                     <div className="flex items-center justify-between bg-slate-800 rounded px-3 py-2">
-                      <span className="text-white font-mono">0123456789</span>
+                      <span className="text-white font-mono">{BANK_INFO.accountNumber}</span>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => copyToClipboard('0123456789', 'account')}
+                        onClick={() => copyToClipboard(BANK_INFO.accountNumber, 'account')}
                         className="h-6 w-6 p-0"
                       >
                         {copiedField === 'account' ? (
@@ -473,11 +469,11 @@ function CheckoutContent() {
                   <div>
                     <label className="text-slate-300 block mb-1">CLABE:</label>
                     <div className="flex items-center justify-between bg-slate-800 rounded px-3 py-2">
-                      <span className="text-white font-mono">012345678901234567</span>
+                      <span className="text-white font-mono">{BANK_INFO.clabe}</span>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => copyToClipboard('012345678901234567', 'clabe')}
+                        onClick={() => copyToClipboard(BANK_INFO.clabe, 'clabe')}
                         className="h-6 w-6 p-0"
                       >
                         {copiedField === 'clabe' ? (
@@ -492,11 +488,11 @@ function CheckoutContent() {
                   <div>
                     <label className="text-slate-300 block mb-1">Beneficiario:</label>
                     <div className="flex items-center justify-between bg-slate-800 rounded px-3 py-2">
-                      <span className="text-white">Moto Isla Raffle</span>
+                      <span className="text-white">{BANK_INFO.accountHolder}</span>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => copyToClipboard('Moto Isla Raffle', 'beneficiary')}
+                        onClick={() => copyToClipboard(BANK_INFO.accountHolder, 'beneficiary')}
                         className="h-6 w-6 p-0"
                       >
                         {copiedField === 'beneficiary' ? (

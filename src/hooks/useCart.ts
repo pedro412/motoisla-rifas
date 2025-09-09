@@ -66,8 +66,9 @@ export function useCart(raffleId?: string, maxTicketsPerUser: number = 20) {
     return cartItems.map(item => item.ticketNumber);
   }, [cartItems]);
 
-  const submitOrder = async (customerInfo: { name: string; phone?: string; email?: string }) => {
+  const submitOrder = useCallback(async (customerInfo: { name: string; phone?: string; email?: string }): Promise<{ success: boolean; error?: string; orderId?: string }> => {
     if (cartItems.length === 0) return { success: false, error: 'No hay boletos en el carrito' };
+    if (!raffleId) return { success: false, error: 'ID de rifa requerido' };
 
     setIsSubmitting(true);
     try {
@@ -77,7 +78,7 @@ export function useCart(raffleId?: string, maxTicketsPerUser: number = 20) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          raffle_id: raffleId || '1', // Use the passed raffle ID or default to '1' for mock data
+          raffle_id: raffleId,
           ticket_numbers: cartItems.map(item => item.ticketNumber),
           customer_name: customerInfo.name,
           customer_phone: customerInfo.phone,
@@ -121,7 +122,7 @@ export function useCart(raffleId?: string, maxTicketsPerUser: number = 20) {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [cartItems, raffleId, getTotalPrice, clearCart]);
 
   return {
     cartItems,

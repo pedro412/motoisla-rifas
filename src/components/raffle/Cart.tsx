@@ -13,14 +13,7 @@ interface CartProps {
   onCheckout?: () => void;
 }
 
-// Mock cart data for now
-const mockCartItems: CartItem[] = [
-  { id: "ticket-7", ticketNumber: 7, price: 50, quantity: 1 },
-  { id: "ticket-77", ticketNumber: 77, price: 50, quantity: 1 },
-  { id: "ticket-123", ticketNumber: 123, price: 50, quantity: 1 },
-];
-
-export function Cart({ items = mockCartItems, onRemoveItem, onCheckout }: CartProps) {
+export function Cart({ items = [], onRemoveItem, onCheckout }: CartProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [customerInfo, setCustomerInfo] = useState({
     name: '',

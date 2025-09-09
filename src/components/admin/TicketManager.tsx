@@ -31,26 +31,18 @@ export default function TicketManager({ raffleId }: TicketManagerProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(false);
-  const [currentRaffleId, setCurrentRaffleId] = useState(raffleId || '');
+  const [currentRaffleId] = useState(raffleId || '');
 
   const { data: availableTickets, refetch: refetchTickets } = useAvailableTickets(currentRaffleId);
 
   useEffect(() => {
     if (availableTickets) {
-      // Transform available tickets data to include status information
-      const ticketData = availableTickets.map((ticket: any) => ({
-        id: ticket.id,
-        number: ticket.number,
-        status: ticket.status,
-        raffle_id: ticket.raffle_id,
-        order_id: ticket.order_id,
-        customer_name: ticket.customer_name,
-        created_at: ticket.created_at,
-        updated_at: ticket.updated_at
-      }));
-      setTickets(ticketData);
+      // Update tickets state when available tickets data changes
+      if (availableTickets) {
+        setTickets(availableTickets);
+      }
     }
-  }, [availableTickets]);
+  }, [availableTickets, setTickets]);
 
   const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = ticket.number.includes(searchTerm) || 

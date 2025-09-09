@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -51,13 +51,13 @@ interface AnalyticsData {
 export default function AnalyticsDashboard() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [timeRange, setTimeRange] = useState('7d');
+  const [range, setRange] = useState('7d');
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/analytics?range=${timeRange}`);
+      const response = await fetch(`/api/admin/analytics?range=${range}`);
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);
@@ -67,7 +67,7 @@ export default function AnalyticsDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [range]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -77,14 +77,14 @@ export default function AnalyticsDashboard() {
 
   const handleExport = async () => {
     try {
-      const response = await fetch(`/api/admin/analytics/export?range=${timeRange}`);
+      const response = await fetch(`/api/admin/analytics/export?range=${range}`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = `analytics-${timeRange}-${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `analytics-${range}-${new Date().toISOString().split('T')[0]}.csv`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -96,7 +96,7 @@ export default function AnalyticsDashboard() {
 
   useEffect(() => {
     fetchAnalytics();
-  }, [timeRange]);
+  }, [range, fetchAnalytics]);
 
   if (loading && !analytics) {
     return (
@@ -115,7 +115,7 @@ export default function AnalyticsDashboard() {
           <p className="text-slate-400">Análisis detallado del rendimiento de las rifas</p>
         </div>
         <div className="flex gap-2">
-          <Select value={timeRange} onValueChange={setTimeRange}>
+          <Select value={range} onValueChange={setRange}>
             <SelectTrigger className="w-40 bg-slate-700 border-slate-600 text-white">
               <Calendar className="h-4 w-4 mr-2" />
               <SelectValue />
@@ -218,7 +218,7 @@ export default function AnalyticsDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {analytics.dailyStats.slice(-7).map((day, index) => (
+                  {analytics.dailyStats?.map((day: { date: string; orders: number; revenue: number }) => (
                     <div key={day.date} className="flex items-center justify-between">
                       <span className="text-slate-300 text-sm">
                         {new Date(day.date).toLocaleDateString('es-ES', { 

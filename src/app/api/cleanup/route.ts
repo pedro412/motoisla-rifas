@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const supabaseUrl = 'http://127.0.0.1:54321';
     const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       message: 'Cleanup completed successfully',
       releasedTickets: releasedTickets.length,
       cancelledOrders,
-      tickets: releasedTickets.map((ticket: any) => ({
+      tickets: releasedTickets.map((ticket: { id: string; number: number; raffle_id: string }) => ({
         id: ticket.id,
         number: ticket.number,
         raffle_id: ticket.raffle_id
@@ -132,6 +132,6 @@ export async function POST(request: NextRequest) {
 }
 
 // Allow GET requests for manual cleanup
-export async function GET(request: NextRequest) {
-  return POST(request);
+export async function GET() {
+  return POST();
 }

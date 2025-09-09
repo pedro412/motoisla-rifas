@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -170,9 +171,11 @@ export default function RafflesList({ onRefresh }: RafflesListProps) {
                   </div>
                   {raffle.image_url && (
                     <div className="ml-4">
-                      <img
+                      <Image
                         src={raffle.image_url}
                         alt={raffle.title}
+                        width={64}
+                        height={64}
                         className="w-16 h-16 object-cover rounded-lg"
                       />
                     </div>

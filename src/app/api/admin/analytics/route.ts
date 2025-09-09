@@ -1,4 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+
+interface Order {
+  id: string;
+  status: string;
+  total_amount: number;
+  created_at: string;
+}
+
+interface Ticket {
+  id: string;
+  status: 'free' | 'reserved' | 'sold';
+  created_at: string;
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -46,19 +59,19 @@ export async function GET(request: NextRequest) {
     const tickets = await ticketsResponse.json();
 
     // Calculate analytics
-    const totalRevenue = orders
-      .filter((order: any) => order.status === 'paid')
-      .reduce((sum: number, order: any) => sum + (order.total_amount || 0), 0);
+    const totalRevenue = (orders as Order[])
+      .filter((order) => order.status === 'paid')
+      .reduce((sum: number, order) => sum + (order.total_amount || 0), 0);
 
     const totalOrders = orders.length;
-    const paidOrders = orders.filter((order: any) => order.status === 'paid').length;
+    const paidOrders = (orders as Order[]).filter((order) => order.status === 'paid').length;
     const conversionRate = totalOrders > 0 ? (paidOrders / totalOrders) * 100 : 0;
     const averageOrderValue = paidOrders > 0 ? totalRevenue / paidOrders : 0;
 
     // Ticket statistics
-    const ticketsSold = tickets.filter((ticket: any) => ticket.status === 'sold').length;
-    const ticketsReserved = tickets.filter((ticket: any) => ticket.status === 'reserved').length;
-    const ticketsAvailable = tickets.filter((ticket: any) => ticket.status === 'free').length;
+    const ticketsSold = (tickets as Ticket[]).filter((ticket) => ticket.status === 'sold').length;
+    const ticketsReserved = (tickets as Ticket[]).filter((ticket) => ticket.status === 'reserved').length;
+    const ticketsAvailable = (tickets as Ticket[]).filter((ticket) => ticket.status === 'free').length;
 
     // Daily stats
     const dailyStats = [];
@@ -67,18 +80,25 @@ export async function GET(request: NextRequest) {
       const dayStart = new Date(date.setHours(0, 0, 0, 0));
       const dayEnd = new Date(date.setHours(23, 59, 59, 999));
       
-      const dayOrders = orders.filter((order: any) => {
+      const dayOrders = (orders as Order[]).filter((order) => {
         const orderDate = new Date(order.created_at);
         return orderDate >= dayStart && orderDate <= dayEnd;
       });
 
-      const dayRevenue = dayOrders
-        .filter((order: any) => order.status === 'paid')
-        .reduce((sum: number, order: any) => sum + (order.total_amount || 0), 0);
+      // Filter tickets for this day (currently unused but kept for future analytics)
+      // const dayTickets = (tickets as Ticket[]).filter((ticket) => {
+      //   const ticketDate = new Date(ticket.created_at);
+      //   return ticketDate >= dayStart && ticketDate <= dayEnd;
+      // });
 
+      const dayRevenue = dayOrders
+        .filter((order) => order.status === 'paid')
+        .reduce((sum: number, order) => sum + (order.total_amount || 0), 0);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dayTicketsSold = dayOrders
-        .filter((order: any) => order.status === 'paid')
-        .reduce((sum: number, order: any) => sum + (Array.isArray(order.tickets) ? order.tickets.length : JSON.parse(order.tickets || '[]').length), 0);
+        .filter((order) => order.status === 'paid')
+        .reduce((sum: number, order) => sum + (Array.isArray((order as any).tickets) ? (order as any).tickets.length : JSON.parse((order as any).tickets || '[]').length), 0);
 
       dailyStats.push({
         date: dayStart.toISOString().split('T')[0],
@@ -89,22 +109,41 @@ export async function GET(request: NextRequest) {
     }
 
     // Customer stats
-    const uniqueCustomers = new Set();
-    const customerOrderCounts = new Map();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const customerStats = (orders as any[]).reduce((acc: any, order: any) => {
+      const customerOrderCounts = new Map();
 
-    orders.forEach((order: any) => {
-      if (order.customer_phone) {
-        uniqueCustomers.add(order.customer_phone);
-        const count = customerOrderCounts.get(order.customer_phone) || 0;
-        customerOrderCounts.set(order.customer_phone, count + 1);
-      }
-    });
+      orders.forEach((order: any) => {
+        if (order.customer_phone) {
+          acc.uniqueCustomers.add(order.customer_phone);
+          const count = customerOrderCounts.get(order.customer_phone) || 0;
+          customerOrderCounts.set(order.customer_phone, count + 1);
+        }
+      });
 
-    const repeatCustomers = Array.from(customerOrderCounts.values()).filter(count => count > 1).length;
-    const totalTicketsPurchased = orders
-      .filter((order: any) => order.status === 'paid')
-      .reduce((sum: number, order: any) => sum + (Array.isArray(order.tickets) ? order.tickets.length : JSON.parse(order.tickets || '[]').length), 0);
-    const averageTicketsPerCustomer = uniqueCustomers.size > 0 ? totalTicketsPurchased / uniqueCustomers.size : 0;
+      const repeatCustomers = Array.from(customerOrderCounts.values()).filter(count => count > 1).length;
+      // Top raffles
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const topRaffles = (orders as any[])
+        .filter((order: any) => order.status === 'paid')
+        .reduce((acc: any, order: any) => {
+          if (!acc[order.rafle_id]) {
+            acc[order.rafle_id] = 0;
+          }
+          acc[order.rafle_id] += Array.isArray(order.tickets) ? order.tickets.length : JSON.parse(order.tickets || '[]').length;
+          return acc;
+        }, {});
+
+      const totalTicketsPurchased = orders
+        .filter((order: any) => order.status === 'paid')
+        .reduce((sum: number, order: any) => sum + (Array.isArray(order.tickets) ? order.tickets.length : JSON.parse(order.tickets || '[]').length), 0);
+      const averageTicketsPerCustomer = acc.uniqueCustomers.size > 0 ? totalTicketsPurchased / acc.uniqueCustomers.size : 0;
+
+      acc.repeatCustomers = repeatCustomers;
+      acc.topRaffles = topRaffles;
+      acc.averageTicketsPerCustomer = averageTicketsPerCustomer;
+      return acc;
+    }, { uniqueCustomers: new Set(), repeatCustomers: 0, topRaffles: {}, averageTicketsPerCustomer: 0 });
 
     // Payment stats
     const paymentStats = {

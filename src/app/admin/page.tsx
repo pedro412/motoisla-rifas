@@ -51,8 +51,8 @@ export default function AdminDashboard() {
     try {
       await updateOrderStatus.mutateAsync({ orderId, status });
       fetchDashboardData(); // Refresh data after update
-    } catch (error) {
-      console.error('Failed to update order status:', error);
+    } catch (err) {
+      console.error('Error deleting raffle:', err);
     }
   };
 
@@ -82,7 +82,7 @@ export default function AdminDashboard() {
       } else {
         setError('Contraseña incorrecta');
       }
-    } catch (error) {
+    } catch {
       setError('Error de conexión');
     } finally {
       setLoading(false);
@@ -113,7 +113,7 @@ export default function AdminDashboard() {
         const ordersData = await ordersResponse.json();
         setOrders(ordersData);
       }
-    } catch (error) {
+    } catch {
       setError('Error cargando datos del dashboard');
     } finally {
       setLoading(false);

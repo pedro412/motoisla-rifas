@@ -99,7 +99,7 @@ export function Cart({ items = [], onRemoveItem, onCheckout }: CartProps) {
                 {items.map((item) => (
                   <div key={item.id} className="flex items-center justify-between p-3 bg-slate-800/50 border border-slate-700 rounded-lg">
                     <div>
-                      <span className="font-medium text-slate-200">Boleto #{item.ticketNumber}</span>
+                      <span className="font-medium text-slate-200">Boleto #{item.ticketNumber.toString().padStart(3, '0')}</span>
                       <div className="text-sm text-slate-400">
                         {formatCurrency(item.price)}
                       </div>

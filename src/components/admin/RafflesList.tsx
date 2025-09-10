@@ -13,10 +13,12 @@ import {
   Edit, 
   Trash2,
   RefreshCw,
-  Users
+  Users,
+  Trophy
 } from 'lucide-react';
 import { useRaffles, useDeleteRaffle } from '@/hooks/useApi';
 import EditRaffleForm from './EditRaffleForm';
+import { DrawWinner } from './DrawWinner';
 
 
 interface RafflesListProps {
@@ -27,6 +29,7 @@ export default function RafflesList({ onRefresh }: RafflesListProps) {
   const { data: raffles = [], isLoading: loading, error, refetch } = useRaffles();
   const deleteRaffleMutation = useDeleteRaffle();
   const [editingRaffleId, setEditingRaffleId] = useState<string | null>(null);
+  const [drawingWinnerRaffleId, setDrawingWinnerRaffleId] = useState<string | null>(null);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -88,6 +91,20 @@ export default function RafflesList({ onRefresh }: RafflesListProps) {
     setEditingRaffleId(null);
   };
 
+  const handleDrawWinner = (raffleId: string) => {
+    setDrawingWinnerRaffleId(raffleId);
+  };
+
+  const handleDrawWinnerComplete = () => {
+    setDrawingWinnerRaffleId(null);
+    refetch();
+    onRefresh?.();
+  };
+
+  const handleDrawWinnerCancel = () => {
+    setDrawingWinnerRaffleId(null);
+  };
+
   if (loading) {
     return (
       <Card className="bg-slate-800/50 border-slate-700">
@@ -127,6 +144,28 @@ export default function RafflesList({ onRefresh }: RafflesListProps) {
         onCancel={handleEditCancel}
       />
     );
+  }
+
+  // Show draw winner form if drawing winner
+  if (drawingWinnerRaffleId) {
+    const raffle = raffles.find(r => r.id === drawingWinnerRaffleId);
+    if (raffle) {
+      return (
+        <div className="space-y-4">
+          <Button
+            onClick={handleDrawWinnerCancel}
+            variant="outline"
+            className="border-slate-600 text-slate-300 hover:bg-slate-700"
+          >
+            ← Volver a la lista
+          </Button>
+          <DrawWinner
+            raffle={raffle}
+            onWinnerDrawn={handleDrawWinnerComplete}
+          />
+        </div>
+      );
+    }
   }
 
   return (
@@ -242,6 +281,17 @@ export default function RafflesList({ onRefresh }: RafflesListProps) {
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       {deleteRaffleMutation.isPending ? 'Cancelando...' : 'Cancelar'}
+                    </Button>
+                  )}
+                  {raffle.status === 'active' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDrawWinner(raffle.id)}
+                      className="border-yellow-600 text-yellow-400 hover:bg-yellow-900/20"
+                    >
+                      <Trophy className="h-4 w-4 mr-2" />
+                      Sortear Ganador
                     </Button>
                   )}
                 </div>

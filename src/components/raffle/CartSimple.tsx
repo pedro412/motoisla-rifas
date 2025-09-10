@@ -84,7 +84,7 @@ export function Cart({ raffle, cart, onOrderComplete }: CartProps) {
           <div className="space-y-2 max-h-32 overflow-y-auto">
             {cart.cartItems.map((item) => (
               <div key={item.id} className="flex items-center justify-between p-2 moto-card moto-border rounded">
-                <span className="text-sm text-white">🎫 Boleto #{item.ticketNumber}</span>
+                <span className="text-sm text-white">🎫 Boleto #{item.ticketNumber.toString().padStart(3, '0')}</span>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium moto-text-primary">{formatCurrency(item.price)}</span>
                   <Button

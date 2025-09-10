@@ -247,9 +247,9 @@ export function TicketGrid({ raffle, tickets, cart, onTicketsChange }: TicketGri
                   "aspect-square text-xs font-medium border rounded transition-colors",
                   getTicketStatusColor(ticket.status, isSelected)
                 )}
-                title={`Boleto #${ticket.number} - ${ticket.status === 'free' ? 'Disponible' : ticket.status === 'reserved' ? 'Reservado' : 'Vendido'}`}
+                title={`Boleto #${ticket.number.toString().padStart(3, '0')} - ${ticket.status === 'free' ? 'Disponible' : ticket.status === 'reserved' ? 'Reservado' : 'Vendido'}`}
               >
-                {ticket.number}
+                {ticket.number.toString().padStart(3, '0')}
               </button>
             );
           })}

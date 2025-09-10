@@ -68,10 +68,10 @@ export async function POST(request: NextRequest) {
 
     console.log('Created raffle:', raffle);
 
-    // Create tickets for the raffle
+    // Create tickets for the raffle (starting from 0 to total_tickets - 1)
     const tickets = Array.from({ length: total_tickets }, (_, index) => ({
       raffle_id: raffle.id,
-      number: index + 1,
+      number: index, // Start from 0 (000) to total_tickets - 1 (999 for 1000 tickets)
       status: 'free'
     }));
 

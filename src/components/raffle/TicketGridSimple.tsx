@@ -20,9 +20,9 @@ interface TicketGridProps {
 export function TicketGrid({ raffle, tickets, cart }: TicketGridProps) {
   const [searchNumber, setSearchNumber] = useState('');
 
-  // Create a full grid of 500 tickets, filling in missing ones
+  // Create a full grid of tickets, filling in missing ones (starting from 0)
   const fullTickets = Array.from({ length: raffle.total_tickets }, (_, i) => {
-    const number = i + 1;
+    const number = i; // Start from 0 (000) to total_tickets - 1 (999 for 1000 tickets)
     const existingTicket = tickets.find(t => t.number === number);
     return existingTicket || {
       id: `temp-${number}`,
@@ -139,7 +139,7 @@ export function TicketGrid({ raffle, tickets, cart }: TicketGridProps) {
                 getTicketStatusColor(ticket)
               )}
             >
-              {ticket.number}
+              {ticket.number.toString().padStart(3, '0')}
             </button>
           ))}
         </div>

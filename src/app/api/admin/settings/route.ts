@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseConfig } from '@/lib/supabase-config';
 
-const supabaseUrl = 'http://127.0.0.1:54321';
-const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+
+// Using supabaseConfig.url instead of hardcoded localhost
+// Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
 export async function GET() {
   try {
-    const response = await fetch(`${supabaseUrl}/rest/v1/settings?order=category.asc,key.asc`, {
+    const response = await fetch(`${supabaseConfig.url}/rest/v1/settings?order=category.asc,key.asc`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+      headers: supabaseConfig.headers
     });
 
     if (!response.ok) {
@@ -52,7 +51,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Key and value are required' }, { status: 400 });
     }
 
-    const response = await fetch(`${supabaseUrl}/rest/v1/settings?key=eq.${key}`, {
+    const response = await fetch(`${supabaseConfig.url}/rest/v1/settings?key=eq.${key}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

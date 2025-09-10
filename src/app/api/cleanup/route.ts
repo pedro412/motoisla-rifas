@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server';
+import { supabaseConfig } from '@/lib/supabase-config';
+
 
 export async function POST() {
   try {
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+    // Using supabaseConfig.url instead of hardcoded localhost
+    // Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
     // Check if auto cleanup is enabled
-    const autoCleanupResponse = await fetch(`${supabaseUrl}/rest/v1/settings?key=eq.auto_cleanup_enabled&select=value`, {
+    const autoCleanupResponse = await fetch(`${supabaseConfig.url}/rest/v1/settings?key=eq.auto_cleanup_enabled&select=value`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+      headers: supabaseConfig.headers
     });
 
     let autoCleanupEnabled = true; // Default to enabled
@@ -33,12 +32,9 @@ export async function POST() {
     const now = new Date().toISOString();
     
     // Find all expired tickets (reserved tickets where expires_at < now)
-    const expiredTicketsResponse = await fetch(`${supabaseUrl}/rest/v1/tickets?status=eq.reserved&expires_at=lt.${now}`, {
+    const expiredTicketsResponse = await fetch(`${supabaseConfig.url}/rest/v1/tickets?status=eq.reserved&expires_at=lt.${now}`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+      headers: supabaseConfig.headers
     });
 
     if (!expiredTicketsResponse.ok) {
@@ -57,7 +53,7 @@ export async function POST() {
     }
 
     // Release expired tickets back to 'free' status
-    const releaseResponse = await fetch(`${supabaseUrl}/rest/v1/tickets?status=eq.reserved&expires_at=lt.${now}`, {
+    const releaseResponse = await fetch(`${supabaseConfig.url}/rest/v1/tickets?status=eq.reserved&expires_at=lt.${now}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -80,12 +76,9 @@ export async function POST() {
     const releasedTickets = await releaseResponse.json();
 
     // Find and cancel expired orders
-    const expiredOrdersResponse = await fetch(`${supabaseUrl}/rest/v1/orders?status=eq.pending&payment_deadline=lt.${now}`, {
+    const expiredOrdersResponse = await fetch(`${supabaseConfig.url}/rest/v1/orders?status=eq.pending&payment_deadline=lt.${now}`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+      headers: supabaseConfig.headers
     });
 
     let cancelledOrders = 0;
@@ -94,7 +87,7 @@ export async function POST() {
       
       if (expiredOrders.length > 0) {
         // Cancel expired orders
-        const cancelResponse = await fetch(`${supabaseUrl}/rest/v1/orders?status=eq.pending&payment_deadline=lt.${now}`, {
+        const cancelResponse = await fetch(`${supabaseConfig.url}/rest/v1/orders?status=eq.pending&payment_deadline=lt.${now}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
+import { supabaseConfig } from '@/lib/supabase-config';
+
 
 export async function GET() {
   try {
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+    // Using supabaseConfig.url instead of hardcoded localhost
+    // Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
     if (!serviceRoleKey) {
       return NextResponse.json(
@@ -12,18 +14,13 @@ export async function GET() {
       );
     }
 
-    console.log('Fetching orders from:', `${supabaseUrl}/rest/v1/orders`);
+    console.log('Fetching orders from:', `${supabaseConfig.url}/rest/v1/orders`);
     console.log('Using service role key:', serviceRoleKey.substring(0, 20) + '...');
 
     // Get all orders using direct REST API call
-    const response = await fetch(`${supabaseUrl}/rest/v1/orders?select=*&order=created_at.desc&limit=50`, {
+    const response = await fetch(`${supabaseConfig.url}/rest/v1/orders?select=*&order=created_at.desc&limit=50`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
+      headers: supabaseConfig.headers
     });
 
     console.log('Response status:', response.status);

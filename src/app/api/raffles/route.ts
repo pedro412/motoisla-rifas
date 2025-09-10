@@ -1,17 +1,12 @@
 import { NextResponse } from 'next/server';
+import { supabaseConfig } from '@/lib/supabase-config';
 
 export async function GET() {
   try {
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
-
     // Fetch active raffles ordered by created_at desc to get the latest first
-    const response = await fetch(`${supabaseUrl}/rest/v1/raffles?status=eq.active&order=created_at.desc`, {
+    const response = await fetch(`${supabaseConfig.url}/rest/v1/raffles?status=eq.active&order=created_at.desc`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+      headers: supabaseConfig.headers
     });
 
     if (!response.ok) {

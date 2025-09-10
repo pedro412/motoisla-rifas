@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseConfig } from '@/lib/supabase-config';
+
 
 export async function PUT(
   request: NextRequest,
@@ -30,16 +32,13 @@ export async function PUT(
       );
     }
 
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+    // Using supabaseConfig.url instead of hardcoded localhost
+    // Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
     // Get current raffle to check if total_tickets changed
-    const currentRaffleResponse = await fetch(`${supabaseUrl}/rest/v1/raffles?id=eq.${raffleId}&select=total_tickets`, {
+    const currentRaffleResponse = await fetch(`${supabaseConfig.url}/rest/v1/raffles?id=eq.${raffleId}&select=total_tickets`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+      headers: supabaseConfig.headers
     });
 
     if (!currentRaffleResponse.ok) {
@@ -66,14 +65,9 @@ export async function PUT(
       status: status || 'active'
     };
 
-    const raffleResponse = await fetch(`${supabaseUrl}/rest/v1/raffles?id=eq.${raffleId}`, {
+    const raffleResponse = await fetch(`${supabaseConfig.url}/rest/v1/raffles?id=eq.${raffleId}`, {
       method: 'PATCH',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-      },
+      headers: supabaseConfig.headers,
       body: JSON.stringify(raffleData)
     });
 
@@ -102,13 +96,9 @@ export async function PUT(
           })
         );
 
-        const ticketsResponse = await fetch(`${supabaseUrl}/rest/v1/tickets`, {
+        const ticketsResponse = await fetch(`${supabaseConfig.url}/rest/v1/tickets`, {
           method: 'POST',
-          headers: {
-            'apikey': serviceRoleKey,
-            'Authorization': `Bearer ${serviceRoleKey}`,
-            'Content-Type': 'application/json'
-          },
+          headers: supabaseConfig.headers,
           body: JSON.stringify(newTickets)
         });
 
@@ -118,13 +108,10 @@ export async function PUT(
       } else if (total_tickets < currentRaffle.total_tickets) {
         // Remove excess tickets (only free ones)
         const deleteResponse = await fetch(
-          `${supabaseUrl}/rest/v1/tickets?raffle_id=eq.${raffleId}&number=gt.${total_tickets}&status=eq.free`,
+          `${supabaseConfig.url}/rest/v1/tickets?raffle_id=eq.${raffleId}&number=gt.${total_tickets}&status=eq.free`,
           {
             method: 'DELETE',
-            headers: {
-              'apikey': serviceRoleKey,
-              'Authorization': `Bearer ${serviceRoleKey}`
-            }
+            headers: supabaseConfig.headers
           }
         );
 
@@ -154,15 +141,12 @@ export async function GET(
 ) {
   try {
     const { id: raffleId } = await params;
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+    // Using supabaseConfig.url instead of hardcoded localhost
+    // Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
-    const response = await fetch(`${supabaseUrl}/rest/v1/raffles?id=eq.${raffleId}&select=*`, {
+    const response = await fetch(`${supabaseConfig.url}/rest/v1/raffles?id=eq.${raffleId}&select=*`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+      headers: supabaseConfig.headers
     });
 
     if (!response.ok) {
@@ -199,17 +183,13 @@ export async function DELETE(
 ) {
   try {
     const { id: raffleId } = await params;
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+    // Using supabaseConfig.url instead of hardcoded localhost
+    // Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
     // Instead of deleting, we'll set status to 'cancelled'
-    const response = await fetch(`${supabaseUrl}/rest/v1/raffles?id=eq.${raffleId}`, {
+    const response = await fetch(`${supabaseConfig.url}/rest/v1/raffles?id=eq.${raffleId}`, {
       method: 'PATCH',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`,
-        'Content-Type': 'application/json'
-      },
+      headers: supabaseConfig.headers,
       body: JSON.stringify({ status: 'cancelled' })
     });
 

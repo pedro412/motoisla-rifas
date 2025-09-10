@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseConfig } from '@/lib/supabase-config';
+
 
 // Direct API approach without Supabase client
 export async function POST(request: NextRequest) {
@@ -24,8 +26,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Use direct fetch to Supabase REST API
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+    // Using supabaseConfig.url instead of hardcoded localhost
+    // Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
     // Create the raffle
     const raffleData = {
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
       status: 'active'
     };
 
-    const raffleResponse = await fetch(`${supabaseUrl}/rest/v1/raffles`, {
+    const raffleResponse = await fetch(`${supabaseConfig.url}/rest/v1/raffles`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -69,7 +71,7 @@ export async function POST(request: NextRequest) {
       status: 'free'
     }));
 
-    const ticketsResponse = await fetch(`${supabaseUrl}/rest/v1/tickets`, {
+    const ticketsResponse = await fetch(`${supabaseConfig.url}/rest/v1/tickets`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -84,12 +86,9 @@ export async function POST(request: NextRequest) {
       console.error('Error creating tickets:', errorText);
       
       // Delete the raffle if ticket creation fails
-      await fetch(`${supabaseUrl}/rest/v1/raffles?id=eq.${raffle.id}`, {
+      await fetch(`${supabaseConfig.url}/rest/v1/raffles?id=eq.${raffle.id}`, {
         method: 'DELETE',
-        headers: {
-          'apikey': serviceRoleKey,
-          'Authorization': `Bearer ${serviceRoleKey}`
-        }
+        headers: supabaseConfig.headers
       });
 
       return NextResponse.json(
@@ -119,15 +118,12 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+    // Using supabaseConfig.url instead of hardcoded localhost
+    // Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
-    const response = await fetch(`${supabaseUrl}/rest/v1/raffles?order=created_at.desc`, {
+    const response = await fetch(`${supabaseConfig.url}/rest/v1/raffles?order=created_at.desc`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+      headers: supabaseConfig.headers
     });
 
     if (!response.ok) {

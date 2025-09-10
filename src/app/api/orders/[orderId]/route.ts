@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseConfig } from '@/lib/supabase-config';
+
 
 export async function GET(
   request: NextRequest,
@@ -11,16 +13,13 @@ export async function GET(
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
     }
 
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+    // Using supabaseConfig.url instead of hardcoded localhost
+    // Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
     // Get order details from database
-    const orderResponse = await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${orderId}`, {
+    const orderResponse = await fetch(`${supabaseConfig.url}/rest/v1/orders?id=eq.${orderId}`, {
       method: 'GET',
-      headers: {
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
-      }
+      headers: supabaseConfig.headers
     });
 
     if (!orderResponse.ok) {
@@ -75,7 +74,7 @@ export async function GET(
 
     if (isExpired) {
       // Update order status to cancelled
-      await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${orderId}`, {
+      await fetch(`${supabaseConfig.url}/rest/v1/orders?id=eq.${orderId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -88,7 +87,7 @@ export async function GET(
       // Release the reserved tickets
       if (order.tickets && Array.isArray(order.tickets)) {
         const ticketNumbers = order.tickets.join(',');
-        await fetch(`${supabaseUrl}/rest/v1/tickets?number=in.(${ticketNumbers})&status=eq.reserved`, {
+        await fetch(`${supabaseConfig.url}/rest/v1/tickets?number=in.(${ticketNumbers})&status=eq.reserved`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -151,11 +150,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
     }
 
-    const supabaseUrl = 'http://127.0.0.1:54321';
-    const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+    // Using supabaseConfig.url instead of hardcoded localhost
+    // Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
     // Cancel the order in database
-    const orderResponse = await fetch(`${supabaseUrl}/rest/v1/orders?id=eq.${orderId}`, {
+    const orderResponse = await fetch(`${supabaseConfig.url}/rest/v1/orders?id=eq.${orderId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -172,7 +171,7 @@ export async function DELETE(
     }
 
     // Release any reserved tickets by updating all tickets that are reserved
-    const ticketResponse = await fetch(`${supabaseUrl}/rest/v1/tickets?status=eq.reserved`, {
+    const ticketResponse = await fetch(`${supabaseConfig.url}/rest/v1/tickets?status=eq.reserved`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

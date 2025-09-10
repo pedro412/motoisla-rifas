@@ -70,7 +70,7 @@ export const sanitizedRaffleSchema = z.object({
 
 export const ticketOrderSchema = z.object({
   raffle_id: z.string().uuid('ID de rifa inválido'),
-  ticket_numbers: z.array(z.number().int().positive())
+  ticket_numbers: z.array(z.number().int().min(0, 'Número de boleto inválido'))
     .min(1, 'Debe seleccionar al menos 1 boleto')
     .max(100, 'No puede seleccionar más de 100 boletos'),
   customer_name: z.string()

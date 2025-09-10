@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseConfig } from '@/lib/supabase-config';
 
 interface Order {
   id: string;

@@ -55,8 +55,8 @@ export async function PUT(request: NextRequest) {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`,
+        'apikey': supabaseConfig.serviceRoleKey,
+        'Authorization': `Bearer ${supabaseConfig.serviceRoleKey}`,
         'Prefer': 'return=representation'
       },
       body: JSON.stringify({ value: value.toString() })

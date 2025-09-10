@@ -78,8 +78,8 @@ export async function GET(
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': serviceRoleKey,
-          'Authorization': `Bearer ${serviceRoleKey}`
+          'apikey': supabaseConfig.serviceRoleKey,
+          'Authorization': `Bearer ${supabaseConfig.serviceRoleKey}`
         },
         body: JSON.stringify({ status: 'cancelled' })
       });
@@ -91,8 +91,8 @@ export async function GET(
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': serviceRoleKey,
-            'Authorization': `Bearer ${serviceRoleKey}`
+            'apikey': supabaseConfig.serviceRoleKey,
+            'Authorization': `Bearer ${supabaseConfig.serviceRoleKey}`
           },
           body: JSON.stringify({ 
             status: 'free',
@@ -158,8 +158,8 @@ export async function DELETE(
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
+        'apikey': supabaseConfig.serviceRoleKey,
+        'Authorization': `Bearer ${supabaseConfig.serviceRoleKey}`
       },
       body: JSON.stringify({ status: 'cancelled' })
     });
@@ -175,8 +175,8 @@ export async function DELETE(
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
+        'apikey': supabaseConfig.serviceRoleKey,
+        'Authorization': `Bearer ${supabaseConfig.serviceRoleKey}`
       },
       body: JSON.stringify({ 
         status: 'free',

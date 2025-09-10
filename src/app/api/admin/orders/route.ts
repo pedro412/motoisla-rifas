@@ -7,7 +7,7 @@ export async function GET() {
     // Using supabaseConfig.url instead of hardcoded localhost
     // Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
-    if (!serviceRoleKey) {
+    if (!supabaseConfig.serviceRoleKey) {
       return NextResponse.json(
         { error: 'Service role key not configured' },
         { status: 500 }
@@ -15,7 +15,7 @@ export async function GET() {
     }
 
     console.log('Fetching orders from:', `${supabaseConfig.url}/rest/v1/orders`);
-    console.log('Using service role key:', serviceRoleKey.substring(0, 20) + '...');
+    console.log('Using service role key:', supabaseConfig.serviceRoleKey.substring(0, 20) + '...');
 
     // Get all orders using direct REST API call
     const response = await fetch(`${supabaseConfig.url}/rest/v1/orders?select=*&order=created_at.desc&limit=50`, {

@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`,
+        'apikey': supabaseConfig.serviceRoleKey,
+        'Authorization': `Bearer ${supabaseConfig.serviceRoleKey}`,
         'Prefer': 'return=representation'
       },
       body: JSON.stringify(raffleData)
@@ -75,8 +75,8 @@ export async function POST(request: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`
+        'apikey': supabaseConfig.serviceRoleKey,
+        'Authorization': `Bearer ${supabaseConfig.serviceRoleKey}`
       },
       body: JSON.stringify(tickets)
     });

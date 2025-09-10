@@ -57,8 +57,8 @@ export async function POST() {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': serviceRoleKey,
-        'Authorization': `Bearer ${serviceRoleKey}`,
+        'apikey': supabaseConfig.serviceRoleKey,
+        'Authorization': `Bearer ${supabaseConfig.serviceRoleKey}`,
         'Prefer': 'return=representation'
       },
       body: JSON.stringify({
@@ -91,8 +91,8 @@ export async function POST() {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': serviceRoleKey,
-            'Authorization': `Bearer ${serviceRoleKey}`
+            'apikey': supabaseConfig.serviceRoleKey,
+            'Authorization': `Bearer ${supabaseConfig.serviceRoleKey}`
           },
           body: JSON.stringify({
             status: 'expired'

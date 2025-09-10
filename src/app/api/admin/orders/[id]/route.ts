@@ -20,7 +20,7 @@ export async function PATCH(
     // Using supabaseConfig.url instead of hardcoded localhost
     // Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
-    if (!serviceRoleKey) {
+    if (!supabaseConfig.serviceRoleKey) {
       return NextResponse.json(
         { error: 'Service role key not configured' },
         { status: 500 }

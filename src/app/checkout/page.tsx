@@ -34,17 +34,19 @@ function CheckoutContent() {
   const { data: orderResponse, isLoading, error } = useOrder(orderId);
   const { data: settings } = useSettings();
   
-  const [serverRemainingTime, setServerRemainingTime] = useState<number | undefined>(
-    orderResponse?.order && typeof orderResponse.order === 'object' && 'remainingSeconds' in orderResponse.order 
-      ? (orderResponse.order as { remainingSeconds: number }).remainingSeconds 
-      : undefined
-  );
+  const [serverRemainingTime, setServerRemainingTime] = useState<number | undefined>(undefined);
+  const [hasServerData, setHasServerData] = useState(false);
 
   const reservationTimer = useReservationTimer({
     onTimeout: () => {
-      alert('Tu reservación ha expirado. Serás redirigido al inicio.');
-      localStorage.removeItem('currentOrder');
-      router.push('/');
+      // Only show timeout alert if we have confirmed server data
+      if (hasServerData) {
+        alert('Tu reservación ha expirado. Serás redirigido al inicio.');
+        localStorage.removeItem('currentOrder');
+        router.push('/');
+      } else {
+        console.log('Timer expired but no server confirmation yet, waiting...');
+      }
     },
     duration: 15, // 15 minutes fallback
     initialTimeLeft: serverRemainingTime // Pass server time when available
@@ -54,6 +56,7 @@ function CheckoutContent() {
   const syncWithServer = useCallback(() => {
     if (orderResponse && orderId) {
       const { order, valid, expired, paid } = orderResponse;
+      setHasServerData(true); // Mark that we have received server data
       
       // Check if order is paid
       if (paid || (order && typeof order === 'object' && 'status' in order && order.status === 'paid')) {
@@ -164,25 +167,31 @@ function CheckoutContent() {
         setOrderData(orderInfo);
         localStorage.setItem('currentOrder', JSON.stringify(orderInfo));
       } else {
-        // Try to get from localStorage
+        // Load order data from localStorage on mount
         const savedOrder = localStorage.getItem('currentOrder');
         if (savedOrder) {
           try {
-            const parsedOrder = JSON.parse(savedOrder) as OrderData;
-            setOrderData(parsedOrder);
+            const parsed = JSON.parse(savedOrder);
+            setOrderData(parsed);
           } catch (error) {
             console.error('Error parsing saved order:', error);
             localStorage.removeItem('currentOrder');
-            router.push('/');
           }
-        } else {
-          router.push('/');
         }
       }
     };
 
     initializeOrder();
   }, [searchParams, orderId, router]);
+
+  // Clear stale timer data when we get fresh server data
+  useEffect(() => {
+    if (orderResponse && hasServerData && serverRemainingTime !== undefined) {
+      // Update localStorage with fresh server time to prevent stale data issues
+      const endTime = Date.now() + (serverRemainingTime * 1000);
+      localStorage.setItem('reservationEndTime', endTime.toString());
+    }
+  }, [orderResponse, hasServerData, serverRemainingTime]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {

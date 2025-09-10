@@ -40,7 +40,7 @@ export function useReservationTimer({ onTimeout, duration = 15, initialTimeLeft 
   useEffect(() => {
     console.log('🔧 Timer hook initializing with:', { initialTimeLeft });
     
-    if (initialTimeLeft !== undefined) {
+    if (initialTimeLeft !== undefined && initialTimeLeft > 0) {
       // Use server-provided time
       console.log('📥 Using server-provided initial time:', initialTimeLeft);
       const endTime = Date.now() + (initialTimeLeft * 1000);
@@ -58,15 +58,21 @@ export function useReservationTimer({ onTimeout, duration = 15, initialTimeLeft 
       const remaining = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
       console.log('⏱️ Calculated remaining time from localStorage:', remaining);
       
+      // Only trigger timeout if we have no server data and timer is actually expired
       if (remaining > 0) {
         setTimeLeft(remaining);
         setIsActive(true);
-      } else {
-        console.log('⚠️ Timer expired, stopping');
+      } else if (initialTimeLeft === undefined) {
+        // Only timeout if server hasn't provided data yet
+        console.log('⚠️ Timer expired and no server data, stopping');
         stopTimer();
         onTimeoutRef.current();
+      } else {
+        // Server data indicates timer is expired
+        console.log('⚠️ Server confirms timer expired');
+        stopTimer();
       }
-    } else {
+    } else if (initialTimeLeft === undefined) {
       console.log('🆕 No saved timer found, waiting for server sync');
     }
   }, [stopTimer, initialTimeLeft]); // Include initialTimeLeft

@@ -1,15 +1,16 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { RaffleHeader } from '@/components/raffle/RaffleHeader';
-import { TicketGrid } from '@/components/raffle/TicketGrid';
-import { Cart } from '@/components/raffle/CartSimple';
-import { useRaffle } from '@/hooks/useRaffle';
-import { useCart } from '@/hooks/useCart';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Clock, CreditCard } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { RaffleHeader } from "@/components/raffle/RaffleHeader";
+import { TicketGrid } from "@/components/raffle/TicketGrid";
+import { Cart } from "@/components/raffle/CartSimple";
+import { useRaffle } from "@/hooks/useRaffle";
+import { useCart } from "@/hooks/useCart";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Clock, CreditCard } from "lucide-react";
+import Image from "next/image";
 
 interface ActiveOrder {
   orderId: string;
@@ -30,30 +31,30 @@ export default function Home() {
   // Check for active order on mount
   useEffect(() => {
     const checkActiveOrder = async () => {
-      const savedOrder = localStorage.getItem('currentOrder');
+      const savedOrder = localStorage.getItem("currentOrder");
       if (savedOrder) {
         try {
           const parsedOrder = JSON.parse(savedOrder);
-          
+
           // Validate order with server
           const response = await fetch(`/api/orders/${parsedOrder.orderId}`);
-          
+
           if (response.ok) {
             const { valid, expired, paid } = await response.json();
-            
+
             if (valid && !expired && !paid) {
               setActiveOrder(parsedOrder);
             } else {
               // Order expired, paid, or invalid - clean up
-              localStorage.removeItem('currentOrder');
+              localStorage.removeItem("currentOrder");
             }
           } else {
             // Order not found, cancelled, or expired - clean up
-            localStorage.removeItem('currentOrder');
+            localStorage.removeItem("currentOrder");
           }
         } catch (error) {
-          console.error('Error checking active order:', error);
-          localStorage.removeItem('currentOrder');
+          console.error("Error checking active order:", error);
+          localStorage.removeItem("currentOrder");
         }
       }
     };
@@ -67,10 +68,12 @@ export default function Home() {
         orderId: activeOrder.orderId,
         customerName: activeOrder.customerName,
         customerPhone: activeOrder.customerPhone,
-        ...(activeOrder.customerEmail && { customerEmail: activeOrder.customerEmail }),
-        ticketNumbers: activeOrder.ticketNumbers.join(','),
+        ...(activeOrder.customerEmail && {
+          customerEmail: activeOrder.customerEmail,
+        }),
+        ticketNumbers: activeOrder.ticketNumbers.join(","),
         totalAmount: activeOrder.totalAmount.toString(),
-        raffleName: activeOrder.raffleName
+        raffleName: activeOrder.raffleName,
       });
       router.push(`/checkout?${params.toString()}`);
     }
@@ -81,14 +84,14 @@ export default function Home() {
       try {
         // Cancel the order on server
         await fetch(`/api/orders/${activeOrder.orderId}`, {
-          method: 'DELETE'
+          method: "DELETE",
         });
       } catch (error) {
-        console.error('Error canceling order:', error);
+        console.error("Error canceling order:", error);
       }
-      
+
       // Clean up locally
-      localStorage.removeItem('currentOrder');
+      localStorage.removeItem("currentOrder");
       setActiveOrder(null);
       refreshTickets(); // Refresh to show released tickets
     }
@@ -111,7 +114,8 @@ export default function Home() {
         <div className="text-center moto-card p-8 rounded-lg">
           <p className="moto-text-primary text-xl mb-4">⚠️ Error: {error}</p>
           <p className="moto-text-secondary">
-            Asegúrate de que tu archivo .env.local esté configurado correctamente
+            Asegúrate de que tu archivo .env.local esté configurado
+            correctamente
           </p>
         </div>
       </div>
@@ -122,7 +126,9 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center moto-card p-8 rounded-lg">
-          <p className="text-white text-xl">🏍️ No hay rifas activas en este momento</p>
+          <p className="text-white text-xl">
+            🏍️ No hay rifas activas en este momento
+          </p>
         </div>
       </div>
     );
@@ -133,17 +139,20 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8 moto-racing-stripe">
-          <h1 className="text-5xl font-bold text-white mb-2 moto-red-glow">
-            🏍️ MOTO ISLA
-          </h1>
-          <h2 className="text-2xl font-semibold moto-text-primary mb-2">
-            RAFFLE
-          </h2>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <Image
+              src="/images/motisla.png"
+              alt="Moto Isla Logo"
+              width={160}
+              height={160}
+              className="object-contain"
+            />
+          </div>
           <p className="moto-text-secondary text-lg">
             Rifas de productos motociclistas de las mejores marcas
           </p>
         </div>
-        
+
         {/* Active Order Notification */}
         {activeOrder && (
           <Card className="mb-6 moto-card moto-border">
@@ -156,7 +165,8 @@ export default function Home() {
                       Tienes un pago pendiente
                     </p>
                     <p className="moto-text-secondary text-sm">
-                      Boletos {activeOrder.ticketNumbers.join(', ')} - ${activeOrder.totalAmount}
+                      Boletos {activeOrder.ticketNumbers.join(", ")} - $
+                      {activeOrder.totalAmount}
                     </p>
                   </div>
                 </div>
@@ -188,9 +198,9 @@ export default function Home() {
           {/* Raffle Info & Ticket Grid */}
           <div className="lg:col-span-3 space-y-6">
             <RaffleHeader raffle={raffle} />
-            <TicketGrid 
+            <TicketGrid
               raffle={raffle}
-              tickets={tickets} 
+              tickets={tickets}
               cart={cart}
               onTicketsChange={refreshTickets}
             />
@@ -198,7 +208,7 @@ export default function Home() {
 
           {/* Cart Sidebar */}
           <div className="lg:col-span-1">
-            <Cart 
+            <Cart
               raffle={raffle}
               cart={cart}
               onOrderComplete={refreshTickets}

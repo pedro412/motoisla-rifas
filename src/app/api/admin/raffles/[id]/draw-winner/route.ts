@@ -4,7 +4,7 @@ import { supabaseConfig } from '@/lib/supabase-config';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify admin authentication
@@ -15,7 +15,7 @@ export async function POST(
       );
     }
 
-    const raffleId = params.id;
+    const { id: raffleId } = await params;
     const body = await request.json();
     const { lotteryNumber } = body;
 

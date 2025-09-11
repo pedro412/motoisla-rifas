@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
           format: formatName,
           phone: formattedPhone,
           success: false,
-          error: error.message
+          error: error instanceof Error ? error.message : 'Unknown error'
         });
       }
     }
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json({ 
       error: 'Internal server error',
-      details: error.message 
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }

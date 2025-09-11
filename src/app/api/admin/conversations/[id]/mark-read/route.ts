@@ -11,10 +11,10 @@ const supabaseConfig = {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const conversationId = params.id;
+    const { id: conversationId } = await params;
 
     // Call the stored procedure to mark conversation as read
     const response = await fetch(

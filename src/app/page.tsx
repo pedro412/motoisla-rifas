@@ -141,7 +141,14 @@ export default function Home() {
           throw new Error(errorData.error || "Failed to create order");
         }
 
-        const { order } = await response.json();
+        const { order, whatsappSent, messageId } = await response.json();
+
+        // Log WhatsApp status
+        if (whatsappSent) {
+          console.log('WhatsApp message sent successfully:', messageId);
+        } else {
+          console.warn('WhatsApp message was not sent');
+        }
 
         // Navigate to checkout with orderId and customer info
         const params = new URLSearchParams({
@@ -311,6 +318,33 @@ export default function Home() {
           </div>
         )}
       </div>
+      
+      {/* Footer */}
+      <footer className="bg-slate-900/50 border-t border-slate-700 mt-16">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="text-slate-400 text-sm">
+              © 2024 MOTO ISLA. Todos los derechos reservados.
+            </div>
+            <div className="flex gap-6 text-sm">
+              <a 
+                href="/privacy-policy" 
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                Política de Privacidad
+              </a>
+              <a 
+                href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace('+', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                Soporte WhatsApp
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

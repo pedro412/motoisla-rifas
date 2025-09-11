@@ -15,7 +15,15 @@ export async function POST(request: NextRequest) {
     const { orderId, customerName, customerPhone, ticketNumbers, totalAmount, raffleName } = body;
 
     // Validate required fields
-    if (!orderId || !customerName || !customerPhone || !ticketNumbers || !totalAmount || !raffleName) {
+    if (!orderId || !customerName || !customerPhone || !Array.isArray(ticketNumbers) || ticketNumbers.length === 0 || !totalAmount || !raffleName) {
+      console.error('Validation failed:', { 
+        orderId: !!orderId, 
+        customerName: !!customerName, 
+        customerPhone: !!customerPhone, 
+        ticketNumbers: Array.isArray(ticketNumbers) ? ticketNumbers.length : 'not array',
+        totalAmount: !!totalAmount, 
+        raffleName: !!raffleName 
+      });
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 

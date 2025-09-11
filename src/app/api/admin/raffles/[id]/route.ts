@@ -67,7 +67,10 @@ export async function PUT(
 
     const raffleResponse = await fetch(`${supabaseConfig.url}/rest/v1/raffles?id=eq.${raffleId}`, {
       method: 'PATCH',
-      headers: supabaseConfig.headers,
+      headers: {
+        ...supabaseConfig.headers,
+        'Prefer': 'return=representation'
+      },
       body: JSON.stringify(raffleData)
     });
 
@@ -80,8 +83,33 @@ export async function PUT(
       );
     }
 
-    const updatedRaffles = await raffleResponse.json();
-    const updatedRaffle = updatedRaffles[0];
+    let updatedRaffles;
+    let updatedRaffle;
+    
+    try {
+      const responseText = await raffleResponse.text();
+      if (responseText) {
+        updatedRaffles = JSON.parse(responseText);
+        updatedRaffle = updatedRaffles[0];
+      } else {
+        // If no response body, fetch the updated raffle
+        const fetchResponse = await fetch(`${supabaseConfig.url}/rest/v1/raffles?id=eq.${raffleId}`, {
+          method: 'GET',
+          headers: supabaseConfig.headers
+        });
+        updatedRaffles = await fetchResponse.json();
+        updatedRaffle = updatedRaffles[0];
+      }
+    } catch (parseError) {
+      console.error('Error parsing raffle response:', parseError);
+      // Fallback: fetch the updated raffle
+      const fetchResponse = await fetch(`${supabaseConfig.url}/rest/v1/raffles?id=eq.${raffleId}`, {
+        method: 'GET',
+        headers: supabaseConfig.headers
+      });
+      updatedRaffles = await fetchResponse.json();
+      updatedRaffle = updatedRaffles[0];
+    }
 
     // Handle ticket count changes
     if (currentRaffle.total_tickets !== total_tickets) {

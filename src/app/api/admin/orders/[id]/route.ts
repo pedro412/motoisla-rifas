@@ -68,6 +68,16 @@ export async function PATCH(
       );
     }
 
+    // Parse the response safely
+    let updatedOrderData;
+    try {
+      const responseText = await updateOrderResponse.text();
+      updatedOrderData = responseText ? JSON.parse(responseText) : null;
+    } catch (parseError) {
+      console.error('Error parsing order update response:', parseError);
+      updatedOrderData = null;
+    }
+
     // If marking as paid, update ticket statuses to 'sold'
     if (status === 'paid') {
       const ticketNumbers = order.tickets;
@@ -112,11 +122,9 @@ export async function PATCH(
       }
     }
 
-    const updatedOrders = await updateOrderResponse.json();
-    
     return NextResponse.json({
       success: true,
-      order: updatedOrders[0]
+      order: updatedOrderData ? (Array.isArray(updatedOrderData) ? updatedOrderData[0] : updatedOrderData) : { id: orderId, status }
     });
 
   } catch (error) {

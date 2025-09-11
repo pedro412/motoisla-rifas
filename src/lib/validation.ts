@@ -81,11 +81,11 @@ export const ticketOrderSchema = z.object({
     .min(10, 'El teléfono debe tener al menos 10 dígitos')
     .max(20, 'El teléfono no puede exceder 20 caracteres')
     .transform(sanitizePhone),
-  customer_email: z.string()
-    .email('Email inválido')
-    .max(255, 'El email no puede exceder 255 caracteres')
-    .transform(sanitizeEmail)
-    .optional(),
+  customer_email: z.union([
+    z.string().email('Email inválido').max(255, 'El email no puede exceder 255 caracteres').transform(sanitizeEmail),
+    z.literal(''),
+    z.undefined()
+  ]).optional().transform(val => val === '' ? undefined : val),
 });
 
 // IP validation

@@ -4,22 +4,43 @@
 
 /* Moto Isla Theme - Black to Red Gradient Background */
 @layer base {
-  body {
-    background: linear-gradient(135deg, #000000 0%, #1a0000 25%, #330000 50%, #660000 75%, #cc0000 100%);
+  html {
+    font-size: 18px; /* Increased base font size for better mobile readability */
+    background: #0f172a;
     background-attachment: fixed;
-    min-height: 100vh;
   }
   
-  html {
-    background: linear-gradient(135deg, #000000 0%, #1a0000 25%, #330000 50%, #660000 75%, #cc0000 100%);
+  body {
+    background: #0f172a;
     background-attachment: fixed;
+    min-height: 100vh;
+    font-size: 1rem; /* Uses the 18px base size */
+  }
+  
+  /* Mobile-first responsive font scaling */
+  @media (max-width: 640px) {
+    html {
+      font-size: 16px; /* Slightly smaller on very small screens */
+    }
+  }
+  
+  @media (min-width: 768px) {
+    html {
+      font-size: 18px;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    html {
+      font-size: 20px; /* Larger on desktop */
+    }
   }
 }
 
 /* Moto Isla Custom Styles */
 @layer components {
   .moto-gradient {
-    background: linear-gradient(135deg, #000000 0%, #1a0000 25%, #330000 50%, #660000 75%, #cc0000 100%);
+    background: linear-gradient(180deg, #000000, #1a0000 80%, #330000 90%, #660000 95%, #cc0000);
   }
   
   .moto-gradient-reverse {

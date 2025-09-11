@@ -12,10 +12,10 @@ interface RaffleHeaderProps {
 
 export function RaffleHeader({ raffle }: RaffleHeaderProps) {
   return (
-    <Card className="overflow-hidden moto-card moto-border moto-racing-stripe">
+    <Card className="overflow-hidden bg-slate-800/30 rounded-xl">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-2xl text-white">
-          <Trophy className="h-6 w-6 moto-text-primary" />
+          <Trophy className="h-6 w-6 text-white" />
           {raffle.title}
         </CardTitle>
       </CardHeader>
@@ -32,13 +32,13 @@ export function RaffleHeader({ raffle }: RaffleHeaderProps) {
               className="object-contain rounded-lg"
             />
           ) : (
-            <div className="moto-card moto-border bg-gradient-to-br from-black/95 to-black/70 h-full flex items-center justify-center">
-              <div className="text-center moto-pulse-glow">
-                <Trophy className="h-20 w-20 mx-auto mb-4 moto-text-primary drop-shadow-lg" />
+            <div className="bg-slate-800/50 rounded-lg h-full flex items-center justify-center">
+              <div className="text-center">
+                <Trophy className="h-20 w-20 mx-auto mb-4 text-slate-400 drop-shadow-lg" />
                 <p className="text-lg font-semibold text-white mb-2">
                   🏍️ Imagen del producto
                 </p>
-                <p className="text-sm moto-text-secondary">(Próximamente)</p>
+                <p className="text-sm text-slate-400">(Próximamente)</p>
               </div>
             </div>
           )}
@@ -49,14 +49,14 @@ export function RaffleHeader({ raffle }: RaffleHeaderProps) {
           <h3 className="font-semibold text-lg mb-2 text-white">
             🏆 Descripción del Premio
           </h3>
-          <p className="moto-text-secondary leading-relaxed">
+          <p className="text-slate-400 leading-relaxed whitespace-pre-wrap">
             {raffle.description}
           </p>
         </div>
 
         {/* Raffle Info */}
         <div className="grid md:grid-cols-3 gap-4">
-          <div className="flex items-center gap-3 p-4 moto-card moto-border rounded-lg">
+          <div className="flex items-center gap-3 p-4 bg-slate-800/30 rounded-xl">
             <Calendar className="h-5 w-5 text-green-400" />
             <div>
               <p className="text-sm font-medium text-green-300">🏁 Inicio</p>
@@ -66,22 +66,20 @@ export function RaffleHeader({ raffle }: RaffleHeaderProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 moto-card moto-border rounded-lg">
-            <Clock className="h-5 w-5 moto-text-primary" />
+          <div className="flex items-center gap-3 p-4 bg-slate-800/30 rounded-xl">
+            <Clock className="h-5 w-5 text-slate-400" />
             <div>
-              <p className="text-sm font-medium moto-text-primary">
-                🏁 Termina
-              </p>
-              <p className="text-sm moto-text-secondary">
+              <p className="text-sm font-medium text-slate-300">🏁 Termina</p>
+              <p className="text-sm text-slate-400">
                 {formatDate(raffle.end_date)}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-4 moto-card moto-border rounded-lg moto-red-glow">
-            <Trophy className="h-5 w-5 moto-text-primary" />
+          <div className="flex items-center gap-3 p-4 bg-slate-800/30 rounded-xl">
+            <Trophy className="h-5 w-5 text-yellow-400" />
             <div>
-              <p className="text-sm font-medium moto-text-primary">
+              <p className="text-sm font-medium text-yellow-300">
                 💰 Precio por boleto
               </p>
               <p className="text-lg font-bold text-white">
@@ -92,11 +90,11 @@ export function RaffleHeader({ raffle }: RaffleHeaderProps) {
         </div>
 
         {/* Terms */}
-        <div className="moto-card moto-border p-4 rounded-lg">
+        <div className="bg-slate-800/30 p-4 rounded-xl">
           <h4 className="font-semibold mb-2 text-white">
             📋 Términos y Condiciones
           </h4>
-          <ul className="text-sm moto-text-secondary space-y-1">
+          <ul className="text-sm text-slate-400 space-y-1">
             <li>
               🏁 El sorteo se realizará en vivo una vez vendidos todos los
               boletos

@@ -172,7 +172,8 @@ export default function AdminDashboard() {
             <Button
               onClick={handleLogin}
               disabled={loading || !password}
-              className="w-full moto-button-primary text-white"
+              variant="primary"
+              className="w-full"
             >
               {loading ? '🏍️ Verificando...' : '🏁 Ingresar'}
             </Button>
@@ -204,7 +205,6 @@ export default function AdminDashboard() {
           <Button
             onClick={handleLogout}
             variant="outline"
-            className="moto-border moto-text-secondary hover:bg-red-900/30"
           >
             <LogOut className="h-4 w-4 mr-2" />
             🏁 Cerrar Sesión
@@ -215,66 +215,42 @@ export default function AdminDashboard() {
         <div className="flex gap-2 mb-8 flex-wrap">
           <Button
             onClick={() => setActiveTab('dashboard')}
-            variant={activeTab === 'dashboard' ? 'default' : 'outline'}
-            className={activeTab === 'dashboard' 
-              ? 'moto-button-primary text-white' 
-              : 'moto-border moto-text-secondary hover:bg-red-900/30'
-            }
+            variant={activeTab === 'dashboard' ? 'primary' : 'outline'}
           >
             <Shield className="h-4 w-4 mr-2" />
             📊 Dashboard
           </Button>
           <Button
             onClick={() => setActiveTab('create-raffle')}
-            variant={activeTab === 'create-raffle' ? 'default' : 'outline'}
-            className={activeTab === 'create-raffle' 
-              ? 'moto-button-primary text-white' 
-              : 'moto-border moto-text-secondary hover:bg-red-900/30'
-            }
+            variant={activeTab === 'create-raffle' ? 'primary' : 'outline'}
           >
             <Plus className="h-4 w-4 mr-2" />
             ➕ Crear Rifa
           </Button>
           <Button
             onClick={() => setActiveTab('manage-raffles')}
-            variant={activeTab === 'manage-raffles' ? 'default' : 'outline'}
-            className={activeTab === 'manage-raffles' 
-              ? 'moto-button-primary text-white' 
-              : 'moto-border moto-text-secondary hover:bg-red-900/30'
-            }
+            variant={activeTab === 'manage-raffles' ? 'primary' : 'outline'}
           >
             <List className="h-4 w-4 mr-2" />
             📋 Gestionar Rifas
           </Button>
           <Button
             onClick={() => setActiveTab('tickets')}
-            variant={activeTab === 'tickets' ? 'default' : 'outline'}
-            className={activeTab === 'tickets' 
-              ? 'moto-button-primary text-white' 
-              : 'moto-border moto-text-secondary hover:bg-red-900/30'
-            }
+            variant={activeTab === 'tickets' ? 'primary' : 'outline'}
           >
             <Ticket className="h-4 w-4 mr-2" />
             🎫 Gestionar Boletos
           </Button>
           <Button
             onClick={() => setActiveTab('analytics')}
-            variant={activeTab === 'analytics' ? 'default' : 'outline'}
-            className={activeTab === 'analytics' 
-              ? 'moto-button-primary text-white' 
-              : 'moto-border moto-text-secondary hover:bg-red-900/30'
-            }
+            variant={activeTab === 'analytics' ? 'primary' : 'outline'}
           >
             <BarChart3 className="h-4 w-4 mr-2" />
             📈 Analíticas
           </Button>
           <Button
             onClick={() => setActiveTab('settings')}
-            variant={activeTab === 'settings' ? 'default' : 'outline'}
-            className={activeTab === 'settings' 
-              ? 'moto-button-primary text-white' 
-              : 'moto-border moto-text-secondary hover:bg-red-900/30'
-            }
+            variant={activeTab === 'settings' ? 'primary' : 'outline'}
           >
             <Settings className="h-4 w-4 mr-2" />
             ⚙️ Configuración
@@ -346,7 +322,6 @@ export default function AdminDashboard() {
                     onClick={fetchDashboardData}
                     variant="outline"
                     size="sm"
-                    className="moto-border moto-text-secondary hover:bg-red-900/30"
                   >
                     🔄 Actualizar
                   </Button>

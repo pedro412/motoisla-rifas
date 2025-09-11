@@ -212,7 +212,7 @@ function CheckoutContent() {
 
   if (!orderData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-white text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p>Cargando información de la orden...</p>
@@ -236,7 +236,7 @@ function CheckoutContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-white text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p>Validando orden...</p>
@@ -247,9 +247,9 @@ function CheckoutContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-white text-center">
-          <p className="text-red-400 mb-4">Error al validar la orden</p>
+          <p className="text-white mb-4">Error al validar la orden</p>
           <Button onClick={() => router.push('/')} variant="outline">
             Volver al inicio
           </Button>
@@ -259,7 +259,7 @@ function CheckoutContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+    <div className="min-h-screen bg-slate-900 p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
@@ -574,9 +574,9 @@ function CheckoutContent() {
               </div>
 
               {/* Important Notes */}
-              <div className="bg-red-900/20 border border-red-600 rounded-lg p-4">
+              <div className="bg-slate-800/50 rounded-lg p-4">
                 <h3 className="font-medium text-white mb-2">⚠️ Importante:</h3>
-                <ul className="text-red-300 text-sm space-y-1">
+                <ul className="text-slate-300 text-sm space-y-1">
                   <li>• El monto debe ser exacto: {formatCurrency(orderData.totalAmount)}</li>
                   <li>• Incluye el concepto: Orden #{orderData.orderId}</li>
                   <li>• Envía tu comprobante por WhatsApp</li>
@@ -596,7 +596,7 @@ function CheckoutContent() {
 export default function CheckoutPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-white text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p>Cargando página de checkout...</p>

@@ -112,12 +112,12 @@ export function TicketGrid({ raffle, tickets, cart, onTicketsChange }: TicketGri
   const salesProgress = ((stats.reserved + stats.sold) / stats.total) * 100;
 
   return (
-    <Card className="moto-card moto-border">
+    <Card className="bg-slate-800/30 rounded-xl">
       <CardHeader>
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-white">
-              <Grid className="h-5 w-5 moto-text-primary" />
+              <Grid className="h-5 w-5 text-white" />
               Selecciona tus Boletos
             </CardTitle>
             
@@ -126,7 +126,7 @@ export function TicketGrid({ raffle, tickets, cart, onTicketsChange }: TicketGri
                 variant="outline"
                 size="sm"
                 onClick={handleSingleRandomSelect}
-                className="flex items-center gap-2 moto-border hover:moto-red-glow"
+                className="flex items-center gap-2"
               >
                 <Shuffle className="h-4 w-4" />
                 Aleatorio
@@ -135,31 +135,31 @@ export function TicketGrid({ raffle, tickets, cart, onTicketsChange }: TicketGri
           </div>
 
           {/* Sales Progress */}
-          <div className="moto-card moto-border p-4 rounded-lg">
+          <div className="bg-slate-800/30 p-4 rounded-xl">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 moto-text-primary" />
+                <TrendingUp className="h-4 w-4 text-blue-400" />
                 Progreso de Ventas
               </h3>
-              <span className="text-sm moto-text-secondary">
+              <span className="text-sm text-slate-400">
                 {Math.round(salesProgress)}% vendido
               </span>
             </div>
             <Progress 
               value={salesProgress} 
-              className="h-3 moto-border bg-black/40"
+              className="h-3 bg-slate-700/50"
             />
-            <div className="flex justify-between text-xs moto-text-secondary mt-2">
+            <div className="flex justify-between text-xs text-slate-400 mt-2">
               <span>{stats.reserved + stats.sold} vendidos</span>
               <span>{stats.total} total</span>
             </div>
           </div>
           
           {/* Ticket Counter Section */}
-          <div className="flex flex-col gap-3 p-4 moto-card moto-border rounded-lg">
+          <div className="flex flex-col gap-3 p-4 bg-slate-800/30 rounded-xl">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-white">Selección Rápida</h3>
-              <span className="text-xs moto-text-secondary">
+              <span className="text-xs text-slate-400">
                 Seleccionados: {cart.itemCount} / {raffle.max_tickets_per_user}
               </span>
             </div>

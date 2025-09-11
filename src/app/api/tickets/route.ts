@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     const { raffle_id, ticket_numbers, customer_name, customer_phone, customer_email } = validatedData;
 
     // Get raffle info to calculate total
-    const raffleResponse = await fetch(`${supabaseConfig.url}/rest/v1/raffles?id=eq.${raffle_id}&select=ticket_price`, {
+    const raffleResponse = await fetch(`${supabaseConfig.url}/rest/v1/raffles?id=eq.${raffle_id}&select=ticket_price,title`, {
       method: 'GET',
       headers: supabaseConfig.headers
     });

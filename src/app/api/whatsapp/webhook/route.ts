@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 
+// Supabase configuration
+const supabaseConfig = {
+  url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  headers: {
+    'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=minimal'
+  }
+};
+
 // WhatsApp webhook verification token - should match what you set in Meta Business
 const WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'your_verify_token_here';
 
@@ -90,6 +101,73 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Store incoming message in database
+async function storeIncomingMessage(message: any, contact: any) {
+  try {
+    const customerPhone = message.from;
+    const customerName = contact?.profile?.name || 'Cliente';
+    
+    // First, ensure conversation exists
+    const conversationResponse = await fetch(`${supabaseConfig.url}/rest/v1/conversations`, {
+      method: 'POST',
+      headers: supabaseConfig.headers,
+      body: JSON.stringify({
+        customer_phone: customerPhone,
+        customer_name: customerName
+      })
+    });
+
+    let conversationId;
+    if (conversationResponse.status === 409) {
+      // Conversation already exists, get it
+      const existingConvResponse = await fetch(
+        `${supabaseConfig.url}/rest/v1/conversations?customer_phone=eq.${customerPhone}&select=id`,
+        {
+          method: 'GET',
+          headers: supabaseConfig.headers
+        }
+      );
+      const existingConv = await existingConvResponse.json();
+      conversationId = existingConv[0]?.id;
+    } else {
+      const newConv = await conversationResponse.json();
+      conversationId = newConv[0]?.id;
+    }
+
+    if (!conversationId) {
+      throw new Error('Failed to create or find conversation');
+    }
+
+    // Store the message
+    const messageData = {
+      conversation_id: conversationId,
+      whatsapp_message_id: message.id,
+      direction: 'incoming',
+      message_type: message.type,
+      content: message.text?.body || null,
+      media_url: message.image?.id || message.document?.id || null,
+      media_id: message.image?.id || message.document?.id || null,
+      filename: message.document?.filename || null,
+      mime_type: message.image?.mime_type || message.document?.mime_type || null,
+      timestamp: new Date(parseInt(message.timestamp) * 1000).toISOString()
+    };
+
+    const messageResponse = await fetch(`${supabaseConfig.url}/rest/v1/messages`, {
+      method: 'POST',
+      headers: supabaseConfig.headers,
+      body: JSON.stringify(messageData)
+    });
+
+    if (!messageResponse.ok) {
+      throw new Error(`Failed to store message: ${messageResponse.statusText}`);
+    }
+
+    console.log(`Stored incoming message from ${customerName} (${customerPhone})`);
+  } catch (error) {
+    console.error('Error storing incoming message:', error);
+  }
+}
+
 // Handle message status updates (sent, delivered, read, failed)
 function handleMessageStatus(status: any) {
   console.log('Message status update:', {
@@ -123,7 +201,7 @@ function handleMessageStatus(status: any) {
 }
 
 // Handle incoming messages from customers
-function handleIncomingMessage(message: any, contact: any, metadata: any) {
+async function handleIncomingMessage(message: any, contact: any, metadata: any) {
   console.log('Incoming message:', {
     messageId: message.id,
     from: message.from,
@@ -133,19 +211,26 @@ function handleIncomingMessage(message: any, contact: any, metadata: any) {
     businessPhoneNumberId: metadata?.phone_number_id
   });
 
-  // Handle different message types
-  switch (message.type) {
-    case 'text':
-      handleTextMessage(message, contact);
-      break;
-    case 'image':
-      handleImageMessage(message, contact);
-      break;
-    case 'document':
-      handleDocumentMessage(message, contact);
-      break;
-    default:
-      console.log(`Received ${message.type} message from ${contact?.profile?.name || message.from}`);
+  try {
+    // Store message in database
+    await storeIncomingMessage(message, contact);
+    
+    // Handle different message types
+    switch (message.type) {
+      case 'text':
+        await handleTextMessage(message, contact);
+        break;
+      case 'image':
+        await handleImageMessage(message, contact);
+        break;
+      case 'document':
+        await handleDocumentMessage(message, contact);
+        break;
+      default:
+        console.log(`Received ${message.type} message from ${contact?.profile?.name || message.from}`);
+    }
+  } catch (error) {
+    console.error('Error handling incoming message:', error);
   }
 }
 

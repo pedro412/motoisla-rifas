@@ -108,14 +108,13 @@ export function TicketCounter({
       
       {onRandomSelect && (
         <Button
-          variant="outline"
           size="sm"
           onClick={handleRandomSelect}
           disabled={!canRandomSelect}
-          className="flex items-center gap-2 h-10"
+          className="flex items-center gap-2 h-10 bg-red-600 hover:bg-red-700 border-red-600 text-white disabled:bg-slate-600 disabled:border-slate-600 disabled:text-slate-400 disabled:hover:bg-slate-600"
         >
           <Shuffle className="h-4 w-4" />
-          Seleccionar
+          Selección Aleatoria
         </Button>
       )}
       

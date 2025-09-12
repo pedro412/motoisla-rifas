@@ -36,25 +36,24 @@ export function TicketGrid({ raffle, tickets, onTicketsChange, lockedTicketNumbe
 
   const handleRandomSelect = (count: number) => {
     const availableTickets = tickets.filter(t => t.status === 'free');
-    const selectedTickets = actions.getTicketNumbers();
-    const unselectedAvailable = availableTickets.filter(t => !selectedTickets.includes(t.number));
     
-    if (unselectedAvailable.length === 0) return;
+    if (availableTickets.length === 0) return;
     
-    // Calculate how many tickets we can actually select
-    const currentCount = cartItems.length;
+    // Clear current selection first, then select new random tickets
+    actions.clearCart();
+    
+    // Calculate how many tickets we can select (respecting the count parameter)
     const maxAllowed = Math.min(
       raffle.max_tickets_per_user,
       count,
-      unselectedAvailable.length
+      availableTickets.length
     );
-    const canSelect = Math.min(maxAllowed, raffle.max_tickets_per_user - currentCount);
     
-    if (canSelect <= 0) return;
+    if (maxAllowed <= 0) return;
     
     // Randomly select tickets
-    const shuffled = [...unselectedAvailable].sort(() => Math.random() - 0.5);
-    const toSelect = shuffled.slice(0, canSelect);
+    const shuffled = [...availableTickets].sort(() => Math.random() - 0.5);
+    const toSelect = shuffled.slice(0, maxAllowed);
     
     toSelect.forEach(ticket => {
       actions.addToCart(ticket.number, raffle.ticket_price);
@@ -116,13 +115,12 @@ export function TicketGrid({ raffle, tickets, onTicketsChange, lockedTicketNumbe
             
             <div className="flex items-center gap-2">
               <Button
-                variant="outline"
                 size="sm"
                 onClick={handleSingleRandomSelect}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 border-red-600 text-white"
               >
                 <Shuffle className="h-4 w-4" />
-                Aleatorio
+                Boleto de la Suerte
               </Button>
             </div>
           </div>
@@ -151,7 +149,7 @@ export function TicketGrid({ raffle, tickets, onTicketsChange, lockedTicketNumbe
           {/* Ticket Counter Section */}
           <div className="flex flex-col gap-3 p-4 bg-slate-800/30 rounded-xl">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-white">Selección Rápida</h3>
+              <h3 className="text-sm font-medium text-white">Selección Aleatoria</h3>
               <span className="text-xs text-slate-400">
                 Seleccionados: {cartItems.length} / {raffle.max_tickets_per_user}
               </span>
@@ -160,11 +158,44 @@ export function TicketGrid({ raffle, tickets, onTicketsChange, lockedTicketNumbe
             <TicketCounter
               value={ticketCount}
               onChange={setTicketCount}
-              max={raffle.max_tickets_per_user - cartItems.length}
+              max={raffle.max_tickets_per_user}
               availableTickets={stats.available}
               onRandomSelect={handleRandomSelect}
               disabled={cartItems.length >= raffle.max_tickets_per_user}
             />
+            
+            {/* Selected Tickets Summary */}
+            {cartItems.length > 0 && (
+              <div className="bg-slate-900/50 rounded-lg p-3">
+                <h4 className="font-medium text-white mb-2 text-sm">
+                  Boletos Seleccionados ({cartItems.length})
+                </h4>
+                <div className="max-h-24 overflow-y-auto">
+                  <div className="flex flex-wrap gap-1">
+                    {cartItems
+                      .map(item => item.ticketNumber)
+                      .sort((a, b) => a - b)
+                      .map(number => (
+                        <span 
+                          key={number}
+                          className="inline-block bg-blue-600 text-white text-xs px-2 py-1 rounded"
+                        >
+                          #{number.toString().padStart(3, '0')}
+                        </span>
+                      ))
+                    }
+                  </div>
+                </div>
+                <div className="mt-2 pt-2 border-t border-slate-700">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-300">Total:</span>
+                    <span className="text-green-400 font-semibold">
+                      ${(cartItems.length * raffle.ticket_price).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {cartItems.length >= raffle.max_tickets_per_user && (
               <p className="text-xs text-yellow-400">

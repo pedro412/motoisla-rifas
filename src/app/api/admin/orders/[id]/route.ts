@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseConfig } from '@/lib/supabase-config';
+import { validateTicketAvailability } from '@/lib/ticket-validation';
 
 
 export async function PATCH(
@@ -78,10 +79,26 @@ export async function PATCH(
       updatedOrderData = null;
     }
 
-    // If marking as paid, update ticket statuses to 'sold'
+    // If marking as paid, validate tickets first then update ticket statuses
     if (status === 'paid') {
       const ticketNumbers = order.tickets;
       const raffleId = order.raffle_id;
+
+      // Validate that all tickets are available (not already paid in another order)
+      console.log(`Validating ticket availability for tickets ${ticketNumbers.join(',')} in raffle ${raffleId}`);
+      const validation = await validateTicketAvailability(ticketNumbers, raffleId, orderId);
+      
+      if (!validation.isValid) {
+        console.error('Ticket validation failed:', validation.message);
+        return NextResponse.json(
+          { 
+            error: 'Cannot mark order as paid: ' + validation.message,
+            conflictingTickets: validation.conflictingTickets,
+            conflictingOrders: validation.conflictingOrders
+          },
+          { status: 409 } // Conflict status code
+        );
+      }
 
       // Update all tickets in this order to 'paid' status
       console.log(`Updating tickets ${ticketNumbers.join(',')} to paid status for raffle ${raffleId}`);
@@ -98,7 +115,10 @@ export async function PATCH(
       if (!updateTicketsResponse.ok) {
         const errorText = await updateTicketsResponse.text();
         console.error('Error updating tickets:', errorText);
-        // Don't fail the whole operation, but log the error
+        return NextResponse.json(
+          { error: 'Failed to update ticket status after validation passed' },
+          { status: 500 }
+        );
       }
     }
 

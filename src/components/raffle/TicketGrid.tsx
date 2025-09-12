@@ -8,55 +8,41 @@ import { Progress } from '@/components/ui/progress';
 import { Shuffle, Grid, TrendingUp } from 'lucide-react';
 import { Raffle, Ticket } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useRaffleContext } from '@/contexts/RaffleContext';
 
-interface CartItem {
-  id: string;
-  ticketNumber: number;
-  price: number;
-  quantity: number;
-}
-
-interface Cart {
-  cartItems: CartItem[];
-  toggleTicket: (ticketNumber: number, price: number) => void;
-  addTicket: (ticketNumber: number, price: number) => void;
-  removeTicket: (ticketNumber: number) => void;
-  clearCart: () => void;
-  getTotalPrice: () => number;
-  getTicketNumbers: () => number[];
-  itemCount: number;
-}
 
 interface TicketGridProps {
   raffle: Raffle;
   tickets: Ticket[];
-  cart: Cart;
   onTicketsChange: () => void;
+  lockedTicketNumbers?: number[];
 }
 
 type TicketStatus = 'free' | 'reserved' | 'paid';
 
 
-export function TicketGrid({ raffle, tickets, cart, onTicketsChange }: TicketGridProps) {
+export function TicketGrid({ raffle, tickets, onTicketsChange, lockedTicketNumbers = [] }: TicketGridProps) {
+  const { state, actions } = useRaffleContext();
+  const { cartItems } = state;
   const [searchNumber, setSearchNumber] = useState('');
   const [ticketCount, setTicketCount] = useState(1);
 
   const handleTicketClick = (ticket: Ticket) => {
-    if (ticket.status === 'free' && cart.toggleTicket) {
-      cart.toggleTicket(ticket.number, raffle.ticket_price);
+    if (ticket.status === 'free') {
+      actions.toggleTicket(ticket.number, raffle.ticket_price);
       onTicketsChange();
     }
   };
 
   const handleRandomSelect = (count: number) => {
     const availableTickets = tickets.filter(t => t.status === 'free');
-    const selectedTickets = cart.getTicketNumbers();
+    const selectedTickets = actions.getTicketNumbers();
     const unselectedAvailable = availableTickets.filter(t => !selectedTickets.includes(t.number));
     
     if (unselectedAvailable.length === 0) return;
     
     // Calculate how many tickets we can actually select
-    const currentCount = cart.itemCount;
+    const currentCount = cartItems.length;
     const maxAllowed = Math.min(
       raffle.max_tickets_per_user,
       count,
@@ -71,7 +57,7 @@ export function TicketGrid({ raffle, tickets, cart, onTicketsChange }: TicketGri
     const toSelect = shuffled.slice(0, canSelect);
     
     toSelect.forEach(ticket => {
-      cart.addTicket(ticket.number, raffle.ticket_price);
+      actions.addToCart(ticket.number, raffle.ticket_price);
     });
     
     onTicketsChange();
@@ -96,9 +82,16 @@ export function TicketGrid({ raffle, tickets, cart, onTicketsChange }: TicketGri
     }
   };
 
+  // Override status for locked tickets
+  const displayTickets = tickets.map(t =>
+    lockedTicketNumbers.includes(t.number)
+      ? { ...t, status: (t.status === 'paid' ? 'paid' : 'reserved') as TicketStatus }
+      : t
+  );
+
   const filteredTickets = searchNumber 
-    ? tickets.filter(t => t.number.toString().includes(searchNumber))
-    : tickets;
+    ? displayTickets.filter(t => t.number.toString().includes(searchNumber))
+    : displayTickets;
 
   const stats = {
     total: tickets.length,
@@ -107,7 +100,7 @@ export function TicketGrid({ raffle, tickets, cart, onTicketsChange }: TicketGri
     sold: tickets.filter(t => t.status === 'paid').length,
   };
 
-  const selectedTicketNumbers = cart.cartItems.map((item) => item.ticketNumber) || [];
+  const selectedTicketNumbers = cartItems.map((item) => item.ticketNumber) || [];
 
   const salesProgress = ((stats.reserved + stats.sold) / stats.total) * 100;
 
@@ -160,20 +153,20 @@ export function TicketGrid({ raffle, tickets, cart, onTicketsChange }: TicketGri
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-white">Selección Rápida</h3>
               <span className="text-xs text-slate-400">
-                Seleccionados: {cart.itemCount} / {raffle.max_tickets_per_user}
+                Seleccionados: {cartItems.length} / {raffle.max_tickets_per_user}
               </span>
             </div>
             
             <TicketCounter
               value={ticketCount}
               onChange={setTicketCount}
-              max={raffle.max_tickets_per_user - cart.itemCount}
+              max={raffle.max_tickets_per_user - cartItems.length}
               availableTickets={stats.available}
               onRandomSelect={handleRandomSelect}
-              disabled={cart.itemCount >= raffle.max_tickets_per_user}
+              disabled={cartItems.length >= raffle.max_tickets_per_user}
             />
             
-            {cart.itemCount >= raffle.max_tickets_per_user && (
+            {cartItems.length >= raffle.max_tickets_per_user && (
               <p className="text-xs text-yellow-400">
                 Has alcanzado el límite máximo de {raffle.max_tickets_per_user} boletos por usuario
               </p>

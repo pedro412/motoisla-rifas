@@ -6,8 +6,6 @@ export const ENV = {
   BANK_ACCOUNT_NUMBER: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER || '0123456789',
   BANK_CLABE: process.env.NEXT_PUBLIC_BANK_CLABE || '012345678901234567',
   
-  // WhatsApp
-  WHATSAPP_NUMBER: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '521234567890',
   
   // Site Information
   SITE_NAME: process.env.NEXT_PUBLIC_SITE_NAME || 'Moto Isla Raffle',

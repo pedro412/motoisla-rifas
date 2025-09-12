@@ -180,46 +180,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Some tickets are no longer available' }, { status: 409 });
     }
 
-    // Send WhatsApp confirmation message
-    try {
-      const whatsappResponse = await fetch(`${request.url.replace('/api/tickets', '/api/whatsapp/send-order-confirmation')}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          orderId: order.id,
-          customerName: customer_name,
-          customerPhone: customer_phone,
-          ticketNumbers: ticket_numbers.map((num: number) => num.toString().padStart(3, '0')),
-          totalAmount: orderData.total_amount,
-          raffleName: raffle.title
-        })
-      });
-
-      if (whatsappResponse.ok) {
-        const whatsappData = await whatsappResponse.json();
-        console.log('WhatsApp message sent successfully:', whatsappData);
-        
-        // Return order data with success status
-        return NextResponse.json({ 
-          order, 
-          tickets: updatedTickets,
-          whatsappSent: true,
-          messageId: whatsappData.messageId
-        }, { status: 201 });
-      } else {
-        const errorData = await whatsappResponse.json();
-        console.error('Failed to send WhatsApp message:', errorData);
-      }
-    } catch (whatsappError) {
-      console.error('Error preparing WhatsApp message:', whatsappError);
-    }
-
-    // Return order data even if WhatsApp fails
+    // Return order data
     return NextResponse.json({ 
       order, 
-      tickets: updatedTickets 
+      tickets: updatedTickets,
+      success: true
     }, { status: 201 });
   } catch (error) {
     console.error('Unexpected error:', error);

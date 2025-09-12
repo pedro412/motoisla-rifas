@@ -7,10 +7,9 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Copy, CheckCircle, MessageCircle, CreditCard, Building2 } from 'lucide-react';
 import { useReservationTimer } from '@/hooks/useReservationTimer';
 import { ReservationTimer } from '@/components/ui/ReservationTimer';
-import { createWhatsAppMessage, generateWhatsAppUrl } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { useOrder, useSettings } from '@/hooks/useApi';
-import { BANK_INFO, ENV } from '@/lib/env';
+import { useOrder } from '@/hooks/useApi';
+import { BANK_INFO } from '@/lib/env';
 
 interface OrderData {
   orderId: string;
@@ -32,7 +31,6 @@ function CheckoutContent() {
 
   const orderId = searchParams.get('orderId');
   const { data: orderResponse, isLoading, error } = useOrder(orderId);
-  const { data: settings } = useSettings();
   
   const [serverRemainingTime, setServerRemainingTime] = useState<number | undefined>(undefined);
   const [hasServerData, setHasServerData] = useState(false);
@@ -221,18 +219,6 @@ function CheckoutContent() {
     );
   }
 
-  // Get WhatsApp number from settings with fallback
-  const whatsappNumber = settings?.whatsapp_number?.value || ENV.WHATSAPP_NUMBER;
-  
-  const whatsappMessage = createWhatsAppMessage({
-    orderId: orderData.orderId,
-    raffleName: orderData.raffleName,
-    ticketNumbers: orderData.ticketNumbers,
-    totalAmount: orderData.totalAmount,
-    bankInfo: BANK_INFO
-  });
-
-  const whatsappUrl = generateWhatsAppUrl(whatsappNumber, whatsappMessage);
 
   if (isLoading) {
     return (
@@ -565,11 +551,11 @@ function CheckoutContent() {
                   Una vez realizada la transferencia, envía tu comprobante por WhatsApp para confirmar tu pago.
                 </p>
                 <Button
-                  onClick={() => window.open(whatsappUrl, '_blank')}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  disabled
+                  className="w-full bg-gray-600 text-gray-400 cursor-not-allowed"
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
-                  Enviar Comprobante por WhatsApp
+                  Contactar Soporte (Próximamente)
                 </Button>
               </div>
 

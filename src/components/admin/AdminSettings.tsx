@@ -273,30 +273,6 @@ export default function AdminSettings() {
           </TabsContent>
 
           <TabsContent value="contact" className="space-y-6 mt-6">
-            <div>
-              <Label htmlFor="whatsapp_number" className="text-slate-300">
-                WhatsApp Number
-              </Label>
-              <div className="flex items-center gap-2 mt-2">
-                <Input
-                  id="whatsapp_number"
-                  value={getSettingValue('whatsapp_number')}
-                  onChange={(e) => handleSettingChange('whatsapp_number', e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white"
-                  placeholder="5551234567"
-                />
-                <Button
-                  onClick={() => handleSave('whatsapp_number')}
-                  size="sm"
-                  disabled={!localSettings['whatsapp_number'] || updateSettingMutation.isPending}
-                >
-                  Save
-                </Button>
-              </div>
-              <p className="text-sm text-slate-400 mt-1">
-                WhatsApp number for payment confirmations (without country code)
-              </p>
-            </div>
           </TabsContent>
 
           <TabsContent value="system" className="space-y-6 mt-6">

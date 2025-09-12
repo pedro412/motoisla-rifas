@@ -232,7 +232,7 @@ export default function PrivacyPolicyPage() {
                 puedes contactarnos:
               </p>
               <ul className="list-disc list-inside space-y-2">
-                <li><strong>WhatsApp:</strong> {process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '+52XXXXXXXXXX'}</li>
+                <li><strong>Soporte:</strong> Próximamente disponible</li>
                 <li><strong>Sitio web:</strong> {process.env.NEXT_PUBLIC_SITE_URL || 'https://motoisla-rifas.com'}</li>
                 <li><strong>Empresa:</strong> MOTO ISLA</li>
               </ul>

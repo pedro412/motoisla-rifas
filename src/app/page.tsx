@@ -4,67 +4,28 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RaffleHeader } from "@/components/raffle/RaffleHeader";
 import { TicketGrid } from "@/components/raffle/TicketGrid";
-import { Cart } from "@/components/raffle/CartSimple";
 import { MobileCartDrawer } from "@/components/ui/mobile-cart-drawer";
 import { FloatingCartButton } from "@/components/ui/floating-cart-button";
-import { useRaffle } from "@/hooks/useRaffle";
-import { useCart } from "@/hooks/useCart";
+import { useRaffleContext } from "@/contexts/RaffleContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Clock, CreditCard } from "lucide-react";
 import Image from "next/image";
 
-interface ActiveOrder {
-  orderId: string;
-  customerName: string;
-  customerPhone: string;
-  customerEmail?: string;
-  ticketNumbers: number[];
-  totalAmount: number;
-  raffleName: string;
-}
-
 export default function Home() {
-  const { raffle, tickets, loading, error, refreshTickets } = useRaffle();
-  const cart = useCart(raffle?.id, raffle?.max_tickets_per_user || 20);
+  const { state, actions } = useRaffleContext();
+  const { raffle, tickets, cartItems, activeOrder, loading, error } = state;
+  
+  // Debug log to check activeOrder
+  console.log('Active Order:', activeOrder);
+  console.log('Active Order exists?', !!activeOrder);
   const router = useRouter();
-  const [activeOrder, setActiveOrder] = useState<ActiveOrder | null>(null);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [shouldShowMobileCart, setShouldShowMobileCart] = useState(false);
+  const [isButtonLocked, setIsButtonLocked] = useState(false);
 
-  // Check for active order on mount
-  useEffect(() => {
-    const checkActiveOrder = async () => {
-      const savedOrder = localStorage.getItem("currentOrder");
-      if (savedOrder) {
-        try {
-          const parsedOrder = JSON.parse(savedOrder);
-
-          // Validate order with server
-          const response = await fetch(`/api/orders/${parsedOrder.orderId}`);
-
-          if (response.ok) {
-            const { valid, expired, paid } = await response.json();
-
-            if (valid && !expired && !paid) {
-              setActiveOrder(parsedOrder);
-            } else {
-              // Order expired, paid, or invalid - clean up
-              localStorage.removeItem("currentOrder");
-            }
-          } else {
-            // Order not found, cancelled, or expired - clean up
-            localStorage.removeItem("currentOrder");
-          }
-        } catch (error) {
-          console.error("Error checking active order:", error);
-          localStorage.removeItem("currentOrder");
-        }
-      }
-    };
-
-    checkActiveOrder();
-  }, []);
+  // Cart item count for mobile cart visibility
+  const itemCount = cartItems.length;
 
   const handleContinuePayment = () => {
     if (activeOrder) {
@@ -95,34 +56,38 @@ export default function Home() {
       }
 
       // Clean up locally
-      localStorage.removeItem("currentOrder");
-      setActiveOrder(null);
-      refreshTickets(); // Refresh to show released tickets
+      actions.setActiveOrder(null);
+      actions.refreshTickets(); // Refresh to show released tickets
     }
   };
 
   // Show mobile cart indicator when items are added, but don't auto-open
   useEffect(() => {
-    if (cart.itemCount > 0 && !shouldShowMobileCart) {
+    if (itemCount > 0 && !shouldShowMobileCart) {
       setShouldShowMobileCart(true);
       // Don't auto-open the drawer - let user open it explicitly
-    } else if (cart.itemCount === 0) {
+    } else if (itemCount === 0) {
       setShouldShowMobileCart(false);
       setIsMobileCartOpen(false);
     }
-  }, [cart.itemCount, shouldShowMobileCart]);
+  }, [itemCount, shouldShowMobileCart]);
 
   const handleProceedToCheckout = async (customerInfo: {
     name: string;
     phone: string;
     email?: string;
   }) => {
-    if (cart.itemCount > 0 && raffle) {
+    if (activeOrder) {
+      alert("Tienes un pago pendiente. Debes pagar o cancelar tu orden antes de crear una nueva.");
+      return;
+    }
+    if (itemCount > 0 && raffle) {
+      setIsButtonLocked(true);
       try {
         // Create order first
         const orderData = {
           raffle_id: raffle.id,
-          ticket_numbers: cart.getTicketNumbers(),
+          ticket_numbers: actions.getTicketNumbers(),
           customer_name: customerInfo.name,
           customer_phone: customerInfo.phone,
           customer_email: customerInfo.email,
@@ -141,14 +106,7 @@ export default function Home() {
           throw new Error(errorData.error || "Failed to create order");
         }
 
-        const { order, whatsappSent, messageId } = await response.json();
-
-        // Log WhatsApp status
-        if (whatsappSent) {
-          console.log('WhatsApp message sent successfully:', messageId);
-        } else {
-          console.warn('WhatsApp message was not sent');
-        }
+        const { order } = await response.json();
 
         // Navigate to checkout with orderId and customer info
         const params = new URLSearchParams({
@@ -156,30 +114,32 @@ export default function Home() {
           customerName: customerInfo.name,
           customerPhone: customerInfo.phone,
           ...(customerInfo.email && { customerEmail: customerInfo.email }),
-          ticketNumbers: cart.getTicketNumbers().join(","),
-          totalAmount: cart.getTotalPrice().toString(),
+          ticketNumbers: actions.getTicketNumbers().join(","),
+          totalAmount: actions.getTotalPrice().toString(),
           raffleName: raffle.title,
         });
 
         router.push(`/checkout?${params.toString()}`);
 
         // Clear cart after successful order creation
-        cart.clearCart();
-        refreshTickets();
+        actions.clearCart();
+        actions.refreshTickets();
       } catch (error) {
         console.error("Error creating order:", error);
         alert("Error al crear la orden. Por favor intenta de nuevo.");
+        setIsButtonLocked(false);
       }
     }
   };
 
+
   const handleRemoveFromCart = (ticketNumber: number) => {
-    cart.removeTicket(ticketNumber);
-    refreshTickets();
+    actions.removeFromCart(ticketNumber);
+    actions.refreshTickets();
   };
 
   // Convert cart items to the format expected by MobileCartDrawer
-  const cartItems = cart.cartItems.map((item) => ({
+  const cartItemsForDrawer = cartItems.map((item) => ({
     ticketNumber: item.ticketNumber,
     price: item.price,
   }));
@@ -243,7 +203,7 @@ export default function Home() {
         {/* Active Order Notification */}
         {activeOrder && (
           <Card className="mb-6 bg-slate-800/30 rounded-xl p-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-yellow-400" />
                 <div>
@@ -252,20 +212,26 @@ export default function Home() {
                   </p>
                   <p className="text-slate-400 text-sm">
                     Boletos {activeOrder.ticketNumbers.join(", ")} - $
-                    {activeOrder.totalAmount}
+                    {activeOrder.totalAmount.toLocaleString()}
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full sm:w-auto">
                 <Button
                   onClick={handleContinuePayment}
                   variant="primary"
                   size="sm"
+                  className="flex-1 sm:flex-none"
                 >
                   <CreditCard className="h-4 w-4 mr-1" />
                   Continuar Pago
                 </Button>
-                <Button onClick={handleCancelOrder} variant="outline" size="sm">
+                <Button 
+                  onClick={handleCancelOrder} 
+                  variant="outline" 
+                  size="sm"
+                  className="flex-1 sm:flex-none"
+                >
                   Cancelar
                 </Button>
               </div>
@@ -274,46 +240,38 @@ export default function Home() {
         )}
 
         {/* Main Content */}
-        <div className="grid lg:grid-cols-4 gap-8">
+        <div className="max-w-6xl mx-auto">
           {/* Raffle Info & Ticket Grid */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="space-y-6">
             <RaffleHeader raffle={raffle} />
             <TicketGrid
               raffle={raffle}
               tickets={tickets}
-              cart={cart}
-              onTicketsChange={refreshTickets}
-            />
-          </div>
-
-          {/* Desktop Cart Sidebar - Hidden on mobile */}
-          <div className="hidden lg:block lg:col-span-1">
-            <Cart
-              raffle={raffle}
-              cart={cart}
-              onOrderComplete={refreshTickets}
+              onTicketsChange={actions.refreshTickets}
+              lockedTicketNumbers={activeOrder ? activeOrder.ticketNumbers : []}
             />
           </div>
         </div>
 
-        {/* Mobile Cart Components - Only shown on mobile when items are selected */}
+        {/* Cart Components - Shown on both desktop and mobile when items are selected */}
         {shouldShowMobileCart && (
-          <div className="lg:hidden">
+          <div>
             {/* Floating Cart Button */}
             <FloatingCartButton
-              itemCount={cart.itemCount}
-              totalAmount={cart.getTotalPrice()}
+              itemCount={itemCount}
+              totalAmount={actions.getTotalPrice()}
               onClick={() => setIsMobileCartOpen(true)}
             />
 
-            {/* Mobile Cart Drawer */}
+            {/* Cart Drawer */}
             <MobileCartDrawer
               isOpen={isMobileCartOpen}
               onOpenChange={setIsMobileCartOpen}
-              cartItems={cartItems}
+              cartItems={cartItemsForDrawer}
               onRemoveItem={handleRemoveFromCart}
               onProceedToCheckout={handleProceedToCheckout}
-              raffleTitle={raffle.title}
+              raffleTitle={raffle?.title || ''}
+              isButtonLocked={isButtonLocked || !!activeOrder}
             />
           </div>
         )}
@@ -333,14 +291,9 @@ export default function Home() {
               >
                 Política de Privacidad
               </a>
-              <a 
-                href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER?.replace('+', '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                Soporte WhatsApp
-              </a>
+              <span className="text-slate-400">
+                Soporte (Próximamente)
+              </span>
             </div>
           </div>
         </div>

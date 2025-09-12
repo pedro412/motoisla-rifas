@@ -170,23 +170,31 @@ export async function DELETE(
       return NextResponse.json({ error: 'Failed to cancel order' }, { status: 500 });
     }
 
-    // Release any reserved tickets by updating all tickets that are reserved
-    const ticketResponse = await fetch(`${supabaseConfig.url}/rest/v1/tickets?status=eq.reserved`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': supabaseConfig.serviceRoleKey,
-        'Authorization': `Bearer ${supabaseConfig.serviceRoleKey}`
-      },
-      body: JSON.stringify({ 
-        status: 'free',
-        expires_at: null
-      })
+    // Get the order to find its tickets
+    const getOrder = await fetch(`${supabaseConfig.url}/rest/v1/orders?id=eq.${orderId}`, {
+      method: 'GET',
+      headers: supabaseConfig.headers
     });
-
-    if (!ticketResponse.ok) {
-      const errorText = await ticketResponse.text();
-      console.error('Error releasing tickets:', errorText);
+    const orders = await getOrder.json();
+    const order = orders && orders[0];
+    if (order && order.tickets && Array.isArray(order.tickets) && order.tickets.length > 0) {
+      const ticketNumbers = order.tickets.join(',');
+      const ticketResponse = await fetch(`${supabaseConfig.url}/rest/v1/tickets?number=in.(${ticketNumbers})&status=eq.reserved`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseConfig.serviceRoleKey,
+          'Authorization': `Bearer ${supabaseConfig.serviceRoleKey}`
+        },
+        body: JSON.stringify({ 
+          status: 'free',
+          expires_at: null
+        })
+      });
+      if (!ticketResponse.ok) {
+        const errorText = await ticketResponse.text();
+        console.error('Error releasing tickets:', errorText);
+      }
     }
 
     return NextResponse.json({ success: true, message: 'Order cancelled' });

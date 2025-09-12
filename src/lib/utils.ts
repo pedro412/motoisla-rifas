@@ -21,36 +21,6 @@ export function formatDate(date: string | Date): string {
   }).format(new Date(date));
 }
 
-export function generateWhatsAppUrl(
-  phoneNumber: string,
-  message: string
-): string {
-  const encodedMessage = encodeURIComponent(message);
-  return `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-}
-
-export function createWhatsAppMessage(data: {
-  raffleName: string;
-  ticketNumbers: number[];
-  totalAmount: number;
-  orderId: string;
-  bankInfo: {
-    bankName: string;
-    accountHolder: string;
-    accountNumber: string;
-    clabe: string;
-  };
-}): string {
-  return `Hola! 👋 Envío comprobante de pago para:
-
-🎫 Rifa: ${data.raffleName}
-🎯 Boletos: ${data.ticketNumbers.join(', ')}
-💰 Total: ${formatCurrency(data.totalAmount)}
-📋 Orden: #${data.orderId}
-
-¡Gracias! 🏍️`;
-}
-
 export function isTicketExpired(expiresAt: string | null): boolean {
   if (!expiresAt) return false;
   return new Date(expiresAt) < new Date();

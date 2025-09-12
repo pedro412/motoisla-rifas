@@ -98,7 +98,6 @@ export interface Database {
           total: number;
           status: 'pending' | 'paid' | 'cancelled';
           proof_url: string | null;
-          whatsapp_message_sent: boolean;
           payment_deadline: string;
           created_at: string;
           updated_at: string;
@@ -110,7 +109,6 @@ export interface Database {
           total: number;
           status?: 'pending' | 'paid' | 'cancelled';
           proof_url?: string | null;
-          whatsapp_message_sent?: boolean;
           payment_deadline: string;
           created_at?: string;
           updated_at?: string;
@@ -122,7 +120,6 @@ export interface Database {
           total?: number;
           status?: 'pending' | 'paid' | 'cancelled';
           proof_url?: string | null;
-          whatsapp_message_sent?: boolean;
           payment_deadline?: string;
           created_at?: string;
           updated_at?: string;
@@ -182,13 +179,6 @@ export interface Cart {
   raffleId: string;
 }
 
-export interface WhatsAppMessage {
-  raffleName: string;
-  ticketNumbers: number[];
-  totalAmount: number;
-  orderId: string;
-  bankInfo: BankInfo;
-}
 
 export interface BankInfo {
   bankName: string;
@@ -236,7 +226,6 @@ export interface AdminSettings {
   bank_account_holder: string;
   bank_account_number: string;
   bank_clabe: string;
-  whatsapp_number: string;
   maintenance_mode: boolean;
   auto_cleanup_enabled: boolean;
 }

@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, createWhatsAppMessage, generateWhatsAppUrl } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { ShoppingCart, Trash2, MessageCircle, CreditCard } from "lucide-react";
 import { CartItem } from "@/lib/types";
-import { BANK_INFO, ENV } from "@/lib/env";
+import { BANK_INFO } from "@/lib/env";
 
 interface CartProps {
   items?: CartItem[];
@@ -23,7 +23,6 @@ export function Cart({ items = [], onRemoveItem, onCheckout }: CartProps) {
   });
 
   const total = items.reduce((sum, item) => sum + item.price, 0);
-  const ticketNumbers = items.map(item => item.ticketNumber);
 
   const handleRemoveItem = (ticketId: string) => {
     if (onRemoveItem) {
@@ -37,25 +36,6 @@ export function Cart({ items = [], onRemoveItem, onCheckout }: CartProps) {
     setIsProcessing(true);
     
     try {
-      // Generate order ID
-      const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Create WhatsApp message
-      const whatsappMessage = createWhatsAppMessage({
-        raffleName: ENV.SITE_NAME,
-        ticketNumbers,
-        totalAmount: total,
-        orderId,
-        bankInfo: BANK_INFO
-      });
-      
-      // WhatsApp number (from env)
-      const whatsappNumber = ENV.WHATSAPP_NUMBER;
-      const whatsappUrl = generateWhatsAppUrl(whatsappNumber, whatsappMessage);
-      
-      // Open WhatsApp
-      window.open(whatsappUrl, '_blank');
-      
       // Here you would typically:
       // 1. Create order in Supabase
       // 2. Reserve tickets

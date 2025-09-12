@@ -25,6 +25,7 @@ interface MobileCartDrawerProps {
   onProceedToCheckout: (customerInfo: CustomerInfo) => void;
   isLoading?: boolean;
   raffleTitle?: string;
+  isButtonLocked?: boolean;
 }
 
 export function MobileCartDrawer({
@@ -35,6 +36,7 @@ export function MobileCartDrawer({
   onProceedToCheckout,
   isLoading = false,
   raffleTitle,
+  isButtonLocked = false,
 }: MobileCartDrawerProps) {
   const totalAmount = cartItems.reduce((sum, item) => sum + item.price, 0);
   const itemCount = cartItems.length;
@@ -67,6 +69,46 @@ export function MobileCartDrawer({
       badgeCount={itemCount}
     >
       <div className="space-y-4">
+        {/* Customer Information Form - Moved to top for better UX */}
+        {itemCount > 0 && (
+          <div className="space-y-3 bg-gradient-to-r from-blue-900/20 to-purple-900/20 border border-blue-500/30 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+              <h4 className="text-white font-semibold text-base">Completa tu Información</h4>
+            </div>
+            
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Nombre completo *"
+                value={customerInfo.name}
+                onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full px-4 py-3 bg-slate-800/70 text-white placeholder-gray-300 rounded-lg border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              />
+              
+              <input
+                type="tel"
+                placeholder="Teléfono *"
+                value={customerInfo.phone}
+                onChange={(e) => setCustomerInfo(prev => ({ ...prev, phone: e.target.value }))}
+                className="w-full px-4 py-3 bg-slate-800/70 text-white placeholder-gray-300 rounded-lg border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              />
+              
+              <input
+                type="email"
+                placeholder="Email (opcional)"
+                value={customerInfo.email}
+                onChange={(e) => setCustomerInfo(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full px-4 py-3 bg-slate-800/70 text-white placeholder-gray-300 rounded-lg border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              />
+            </div>
+            
+            <p className="text-xs text-blue-300 flex items-center gap-1">
+              <span className="text-red-400">*</span> Campos requeridos para continuar
+            </p>
+          </div>
+        )}
+
         {/* Raffle Info */}
         {raffleTitle && (
           <div className="bg-slate-800/50 rounded-lg p-3">
@@ -87,7 +129,8 @@ export function MobileCartDrawer({
             <p className="text-gray-500 text-xs mt-1">Toca los números arriba para agregar boletos</p>
           </div>
         ) : (
-          <div className="space-y-2 max-h-60 overflow-y-auto">
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            <h4 className="text-slate-300 font-medium text-sm mb-2">Boletos Seleccionados:</h4>
             {cartItems.map((item) => (
               <div
                 key={item.ticketNumber}
@@ -130,50 +173,17 @@ export function MobileCartDrawer({
               </div>
             </div>
 
-            {/* Customer Information Form */}
-            <div className="space-y-3 border-t border-slate-600/30 pt-4">
-              <h4 className="text-white font-medium text-sm">Información de Contacto</h4>
-              
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Nombre completo *"
-                  value={customerInfo.name}
-                  onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-800/50 text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-                
-                <input
-                  type="tel"
-                  placeholder="Teléfono *"
-                  value={customerInfo.phone}
-                  onChange={(e) => setCustomerInfo(prev => ({ ...prev, phone: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-800/50 text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-                
-                <input
-                  type="email"
-                  placeholder="Email (opcional)"
-                  value={customerInfo.email}
-                  onChange={(e) => setCustomerInfo(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-800/50 text-white placeholder-gray-400 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-              
-              <p className="text-xs text-gray-400">
-                * Campos requeridos
-              </p>
-            </div>
 
             {/* Action Buttons - Fixed at bottom */}
             <div className="space-y-2 mt-6 pt-4 border-t border-slate-600/30 bg-slate-900/90 sticky bottom-0">
               <Button
                 onClick={handleProceedToCheckout}
-                disabled={isLoading || !isFormValid}
+                disabled={isLoading || isButtonLocked || !isFormValid}
                 className={cn(
-                  "w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 text-base",
-                  "disabled:opacity-50 disabled:cursor-not-allowed",
-                  "min-h-[48px]"
+                  "w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 text-base shadow-lg",
+                  "disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-600",
+                  "min-h-[52px] transition-all duration-200",
+                  isFormValid && "ring-2 ring-red-500/20 hover:ring-red-500/40"
                 )}
               >
                 {isLoading ? (

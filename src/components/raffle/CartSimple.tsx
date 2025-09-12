@@ -30,9 +30,18 @@ interface CartProps {
     itemCount: number;
   };
   onOrderComplete: () => void;
+  activeOrder?: {
+    orderId: string;
+    customerName: string;
+    customerPhone: string;
+    customerEmail?: string;
+    ticketNumbers: number[];
+    totalAmount: number;
+    raffleName: string;
+  } | null;
 }
 
-export function Cart({ raffle, cart, onOrderComplete }: CartProps) {
+export function Cart({ raffle, cart, onOrderComplete, activeOrder }: CartProps) {
   const [showCheckoutDialog, setShowCheckoutDialog] = useState(false);
   const router = useRouter();
 
@@ -41,6 +50,11 @@ export function Cart({ raffle, cart, onOrderComplete }: CartProps) {
     phone: string;
     email?: string;
   }) => {
+    if (activeOrder) {
+      alert("Tienes un pago pendiente. Debes pagar o cancelar tu orden antes de crear una nueva.");
+      setShowCheckoutDialog(false);
+      return;
+    }
     try {
       console.log("Submitting order with customer info:", customerInfo);
       const result = await cart.submitOrder(customerInfo);
@@ -146,12 +160,12 @@ export function Cart({ raffle, cart, onOrderComplete }: CartProps) {
           {/* Checkout Button */}
           <Button
             onClick={() => setShowCheckoutDialog(true)}
-            disabled={cart.cartItems.length === 0}
+            disabled={cart.cartItems.length === 0 || !!activeOrder}
             variant="primary"
             className="w-full font-semibold"
           >
             <CreditCard className="h-4 w-4 mr-2" />
-            🏁 Proceder al Checkout
+            {activeOrder ? "Pago Pendiente" : "🏁 Proceder al Checkout"}
           </Button>
 
           {/* Instructions */}

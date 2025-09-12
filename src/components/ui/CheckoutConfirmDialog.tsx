@@ -145,9 +145,15 @@ export function CheckoutConfirmDialog({
               </Label>
               <Input
                 id="phone"
-                {...register('phone')}
+                {...register('phone', {
+                  onChange: (e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    e.target.value = value;
+                  }
+                })}
                 type="tel"
-                placeholder="Tu número de teléfono"
+                placeholder="Teléfono (10 dígitos)"
+                maxLength={10}
                 className="bg-slate-700 border-slate-600 text-white placeholder-slate-400"
               />
               {errors.phone && (
@@ -180,25 +186,27 @@ export function CheckoutConfirmDialog({
             </p>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              onClick={handleSubmit(onSubmit)}
-              disabled={!isValid}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:bg-slate-600 disabled:cursor-not-allowed"
-            >
-              <CreditCard className="h-4 w-4 mr-2" />
-              Continuar al Pago
-            </Button>
+          {/* Action Buttons - Fixed and prominent */}
+          <div className="sticky bottom-0 bg-slate-800 pt-4 border-t border-slate-700 -mx-6 px-6 -mb-6 pb-6">
+            <div className="flex flex-col gap-3">
+              <Button
+                type="submit"
+                onClick={handleSubmit(onSubmit)}
+                disabled={!isValid}
+                className="w-full bg-green-600 hover:bg-green-700 text-white disabled:bg-slate-600 disabled:cursor-not-allowed py-3 text-base font-semibold min-h-[48px]"
+              >
+                <CreditCard className="h-5 w-5 mr-2" />
+                {!isValid ? "Completa la información" : "Continuar al Pago"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700 py-2"
+              >
+                Cancelar
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

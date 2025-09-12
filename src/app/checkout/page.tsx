@@ -10,6 +10,7 @@ import { ReservationTimer } from '@/components/ui/ReservationTimer';
 import { supabase } from '@/lib/supabase';
 import { useOrder } from '@/hooks/useApi';
 import { BANK_INFO } from '@/lib/env';
+import { openWhatsApp, type WhatsAppMessageData } from '@/lib/whatsapp';
 
 interface OrderData {
   orderId: string;
@@ -205,6 +206,19 @@ function CheckoutContent() {
       setTimeout(() => setCopiedField(null), 2000);
     } catch (err) {
       console.error('Failed to copy text: ', err);
+    }
+  };
+
+  const handleWhatsAppContact = () => {
+    if (orderData) {
+      const whatsappData: WhatsAppMessageData = {
+        customerName: orderData.customerName,
+        orderId: orderData.orderId,
+        ticketNumbers: orderData.ticketNumbers,
+        totalAmount: orderData.totalAmount,
+        raffleName: orderData.raffleName
+      };
+      openWhatsApp(whatsappData);
     }
   };
 
@@ -548,26 +562,55 @@ function CheckoutContent() {
                   Confirmar Pago por WhatsApp
                 </h3>
                 <p className="text-green-300 text-sm mb-3">
-                  Una vez realizada la transferencia, envía tu comprobante por WhatsApp para confirmar tu pago.
+                  Una vez realizada la transferencia, haz clic aquí para enviar tu comprobante por WhatsApp con los datos de tu orden ya incluidos.
                 </p>
                 <Button
-                  disabled
-                  className="w-full bg-gray-600 text-gray-400 cursor-not-allowed"
+                  onClick={handleWhatsAppContact}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
-                  Contactar Soporte (Próximamente)
+                  Enviar Comprobante por WhatsApp
                 </Button>
               </div>
 
-              {/* Important Notes */}
-              <div className="bg-slate-800/50 rounded-lg p-4">
-                <h3 className="font-medium text-white mb-2">⚠️ Importante:</h3>
-                <ul className="text-slate-300 text-sm space-y-1">
-                  <li>• El monto debe ser exacto: {formatCurrency(orderData.totalAmount)}</li>
-                  <li>• Incluye el concepto: Orden #{orderData.orderId}</li>
-                  <li>• Envía tu comprobante por WhatsApp</li>
-                  <li>• Tu reservación expira en el tiempo mostrado arriba</li>
-                </ul>
+              {/* Step-by-Step Instructions */}
+              <div className="bg-blue-900/20 border border-blue-600 rounded-lg p-4">
+                <h3 className="font-medium text-white mb-3 flex items-center gap-2">
+                  📋 Instrucciones Paso a Paso
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <div className="bg-blue-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">1</div>
+                    <div>
+                      <p className="text-blue-200 font-medium text-sm">Realiza la transferencia bancaria</p>
+                      <p className="text-blue-300 text-xs">Usa los datos bancarios de arriba. El monto debe ser exacto: <span className="font-semibold">{formatCurrency(orderData.totalAmount)}</span></p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <div className="bg-blue-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">2</div>
+                    <div>
+                      <p className="text-blue-200 font-medium text-sm">Incluye el concepto correcto</p>
+                      <p className="text-blue-300 text-xs">En el concepto de la transferencia escribe: <span className="font-mono bg-slate-700 px-1 rounded">Orden #{orderData.orderId}</span></p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <div className="bg-green-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">3</div>
+                    <div>
+                      <p className="text-green-200 font-medium text-sm">Envía tu comprobante</p>
+                      <p className="text-green-300 text-xs">Haz clic en el botón de WhatsApp de arriba para enviar tu comprobante con los datos ya incluidos</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <div className="bg-yellow-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">⏰</div>
+                    <div>
+                      <p className="text-yellow-200 font-medium text-sm">Tiempo límite</p>
+                      <p className="text-yellow-300 text-xs">Tu reservación expira en el tiempo mostrado arriba. Completa el pago antes de que expire.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
                 </>
               )}

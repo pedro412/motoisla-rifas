@@ -149,14 +149,17 @@ export function RaffleProvider({ children }: RaffleProviderProps) {
 
       const response = await fetch('/api/raffles');
       if (!response.ok) {
-        throw new Error('Failed to fetch raffle data');
+        throw new Error(`Error del servidor: ${response.status}`);
       }
 
       const raffles = await response.json();
       const activeRaffle = raffles[0]; // Get the first active raffle
 
       if (!activeRaffle) {
-        throw new Error('No active raffle found');
+        dispatch({ type: 'SET_RAFFLE', payload: null });
+        dispatch({ type: 'SET_TICKETS', payload: [] });
+        dispatch({ type: 'SET_LOADING', payload: false });
+        return; // Don't throw error, just set empty state
       }
 
       dispatch({ type: 'SET_RAFFLE', payload: activeRaffle });

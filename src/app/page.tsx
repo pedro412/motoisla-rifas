@@ -144,6 +144,7 @@ export default function Home() {
     price: item.price,
   }));
 
+  // Show loading state
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -155,27 +156,43 @@ export default function Home() {
     );
   }
 
+  // Show error state (network/server errors)
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center moto-card p-8 rounded-lg">
           <p className="text-red-400 text-xl mb-4">⚠️ Error: {error}</p>
-          <p className="text-slate-400">
-            Asegúrate de que tu archivo .env.local esté configurado
-            correctamente
+          <p className="text-slate-400 mb-4">
+            Hubo un problema al cargar los datos. Por favor intenta de nuevo.
           </p>
+          <Button 
+            onClick={() => actions.refreshTickets()} 
+            className="bg-red-600 hover:bg-red-700"
+          >
+            Reintentar
+          </Button>
         </div>
       </div>
     );
   }
 
-  if (!raffle) {
+  // Show no raffles state (when loading is complete but no raffles exist)
+  if (!loading && !raffle) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center moto-card p-8 rounded-lg">
-          <p className="text-white text-xl">
+          <p className="text-white text-xl mb-4">
             🏍️ No hay rifas activas en este momento
           </p>
+          <p className="text-slate-400 mb-4">
+            Vuelve pronto para participar en nuestras próximas rifas
+          </p>
+          <Button 
+            onClick={() => actions.refreshTickets()} 
+            variant="outline"
+          >
+            Actualizar
+          </Button>
         </div>
       </div>
     );
@@ -243,9 +260,9 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           {/* Raffle Info & Ticket Grid */}
           <div className="space-y-6">
-            <RaffleHeader raffle={raffle} />
+            <RaffleHeader raffle={raffle!} />
             <TicketGrid
-              raffle={raffle}
+              raffle={raffle!}
               tickets={tickets}
               onTicketsChange={actions.refreshTickets}
               lockedTicketNumbers={activeOrder ? activeOrder.ticketNumbers : []}

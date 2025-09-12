@@ -11,6 +11,9 @@ export const ENV = {
   SITE_NAME: process.env.NEXT_PUBLIC_SITE_NAME || 'Moto Isla Raffle',
   SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'https://localhost:3001',
   
+  // WhatsApp
+  WHATSAPP_NUMBER: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '5215544537711',
+  
   // Supabase (server-side only)
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   

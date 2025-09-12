@@ -51,7 +51,9 @@ export function MobileCartDrawer({
     return num.toString().padStart(3, '0');
   };
 
-  const isFormValid = customerInfo.name.trim().length >= 2 && customerInfo.phone.trim().length >= 10;
+  const isFormValid = customerInfo.name.trim().length >= 2 && 
+    customerInfo.phone.trim().length === 10 && 
+    /^\d{10}$/.test(customerInfo.phone.trim());
 
   const handleProceedToCheckout = () => {
     if (isFormValid && itemCount > 0) {
@@ -88,10 +90,14 @@ export function MobileCartDrawer({
               
               <input
                 type="tel"
-                placeholder="Teléfono *"
+                placeholder="Teléfono (10 dígitos) *"
                 value={customerInfo.phone}
-                onChange={(e) => setCustomerInfo(prev => ({ ...prev, phone: e.target.value }))}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                  setCustomerInfo(prev => ({ ...prev, phone: value }));
+                }}
                 className="w-full px-4 py-3 bg-slate-800/70 text-white placeholder-gray-300 rounded-lg border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                maxLength={10}
               />
               
               <input
@@ -174,8 +180,8 @@ export function MobileCartDrawer({
             </div>
 
 
-            {/* Action Buttons - Fixed at bottom */}
-            <div className="space-y-2 mt-6 pt-4 border-t border-slate-600/30 bg-slate-900/90 sticky bottom-0">
+            {/* Action Buttons - Always visible at bottom */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/95 backdrop-blur-sm border-t border-slate-600/30 space-y-2">
               <Button
                 onClick={handleProceedToCheckout}
                 disabled={isLoading || isButtonLocked || !isFormValid}
@@ -206,6 +212,9 @@ export function MobileCartDrawer({
                 Continuar Seleccionando
               </Button>
             </div>
+            
+            {/* Spacer to prevent content from being hidden behind fixed buttons */}
+            <div className="h-32"></div>
           </div>
         )}
       </div>

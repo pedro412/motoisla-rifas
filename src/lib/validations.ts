@@ -5,7 +5,10 @@ import { z } from 'zod';
 // Customer information schema
 export const customerInfoSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').max(100, 'El nombre es muy largo'),
-  phone: z.string().min(10, 'El teléfono debe tener al menos 10 dígitos').max(15, 'El teléfono es muy largo'),
+  phone: z.string()
+    .min(10, 'El teléfono debe tener 10 dígitos')
+    .max(10, 'El teléfono debe tener exactamente 10 dígitos')
+    .regex(/^\d{10}$/, 'El teléfono debe contener solo números (10 dígitos)'),
   email: z.string().email('Email inválido').optional().or(z.literal(''))
 });
 

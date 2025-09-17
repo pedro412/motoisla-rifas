@@ -15,10 +15,10 @@ import Image from "next/image";
 export default function Home() {
   const { state, actions } = useRaffleContext();
   const { raffle, tickets, cartItems, activeOrder, loading, error } = state;
-  
+
   // Debug log to check activeOrder
-  console.log('Active Order:', activeOrder);
-  console.log('Active Order exists?', !!activeOrder);
+  console.log("Active Order:", activeOrder);
+  console.log("Active Order exists?", !!activeOrder);
   const router = useRouter();
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [shouldShowMobileCart, setShouldShowMobileCart] = useState(false);
@@ -78,7 +78,9 @@ export default function Home() {
     email?: string;
   }) => {
     if (activeOrder) {
-      alert("Tienes un pago pendiente. Debes pagar o cancelar tu orden antes de crear una nueva.");
+      alert(
+        "Tienes un pago pendiente. Debes pagar o cancelar tu orden antes de crear una nueva."
+      );
       return;
     }
     if (itemCount > 0 && raffle) {
@@ -132,7 +134,6 @@ export default function Home() {
     }
   };
 
-
   const handleRemoveFromCart = (ticketNumber: number) => {
     actions.removeFromCart(ticketNumber);
     actions.refreshTickets();
@@ -165,8 +166,8 @@ export default function Home() {
           <p className="text-slate-400 mb-4">
             Hubo un problema al cargar los datos. Por favor intenta de nuevo.
           </p>
-          <Button 
-            onClick={() => actions.refreshTickets()} 
+          <Button
+            onClick={() => actions.refreshTickets()}
             className="bg-red-600 hover:bg-red-700"
           >
             Reintentar
@@ -187,10 +188,7 @@ export default function Home() {
           <p className="text-slate-400 mb-4">
             Vuelve pronto para participar en nuestras próximas rifas
           </p>
-          <Button 
-            onClick={() => actions.refreshTickets()} 
-            variant="outline"
-          >
+          <Button onClick={() => actions.refreshTickets()} variant="outline">
             Actualizar
           </Button>
         </div>
@@ -243,9 +241,9 @@ export default function Home() {
                   <CreditCard className="h-4 w-4 mr-1" />
                   Continuar Pago
                 </Button>
-                <Button 
-                  onClick={handleCancelOrder} 
-                  variant="outline" 
+                <Button
+                  onClick={handleCancelOrder}
+                  variant="outline"
                   size="sm"
                   className="flex-1 sm:flex-none"
                 >
@@ -287,30 +285,28 @@ export default function Home() {
               cartItems={cartItemsForDrawer}
               onRemoveItem={handleRemoveFromCart}
               onProceedToCheckout={handleProceedToCheckout}
-              raffleTitle={raffle?.title || ''}
+              raffleTitle={raffle?.title || ""}
               isButtonLocked={isButtonLocked || !!activeOrder}
             />
           </div>
         )}
       </div>
-      
+
       {/* Footer */}
       <footer className="bg-slate-900/50 border-t border-slate-700 mt-16">
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-slate-400 text-sm">
-              © 2024 MOTO ISLA. Todos los derechos reservados.
+              © {new Date().getFullYear()} MOTO ISLA. Todos los derechos reservados.
             </div>
             <div className="flex gap-6 text-sm">
-              <a 
-                href="/privacy-policy" 
+              <a
+                href="/privacy-policy"
                 className="text-slate-400 hover:text-white transition-colors"
               >
                 Política de Privacidad
               </a>
-              <span className="text-slate-400">
-                Soporte (Próximamente)
-              </span>
+              <span className="text-slate-400">Soporte (Próximamente)</span>
             </div>
           </div>
         </div>

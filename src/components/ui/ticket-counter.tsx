@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Minus, Plus, Shuffle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Minus, Plus, Shuffle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TicketCounterProps {
   value: number;
@@ -24,7 +24,7 @@ export function TicketCounter({
   disabled = false,
   onRandomSelect,
   availableTickets = 0,
-  className
+  className,
 }: TicketCounterProps) {
   const [inputValue, setInputValue] = useState(value.toString());
 
@@ -49,16 +49,26 @@ export function TicketCounter({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputVal = e.target.value;
     setInputValue(inputVal);
-    
+
     const numValue = parseInt(inputVal);
-    if (!isNaN(numValue) && numValue >= min && numValue <= max && numValue <= availableTickets) {
+    if (
+      !isNaN(numValue) &&
+      numValue >= min &&
+      numValue <= max &&
+      numValue <= availableTickets
+    ) {
       onChange(numValue);
     }
   };
 
   const handleInputBlur = () => {
     const numValue = parseInt(inputValue);
-    if (isNaN(numValue) || numValue < min || numValue > max || numValue > availableTickets) {
+    if (
+      isNaN(numValue) ||
+      numValue < min ||
+      numValue > max ||
+      numValue > availableTickets
+    ) {
       setInputValue(value.toString());
     }
   };
@@ -71,7 +81,8 @@ export function TicketCounter({
 
   const canIncrement = value < max && value < availableTickets && !disabled;
   const canDecrement = value > min && !disabled;
-  const canRandomSelect = onRandomSelect && value > 0 && availableTickets >= value && !disabled;
+  const canRandomSelect =
+    onRandomSelect && value > 0 && availableTickets >= value && !disabled;
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
@@ -85,7 +96,7 @@ export function TicketCounter({
         >
           <Minus className="h-4 w-4" />
         </Button>
-        
+
         <input
           type="text"
           value={inputValue}
@@ -94,7 +105,7 @@ export function TicketCounter({
           disabled={disabled}
           className="w-16 h-10 text-center bg-transparent border-none text-slate-200 focus:outline-none disabled:opacity-50"
         />
-        
+
         <Button
           variant="ghost"
           size="sm"
@@ -105,7 +116,7 @@ export function TicketCounter({
           <Plus className="h-4 w-4" />
         </Button>
       </div>
-      
+
       {onRandomSelect && (
         <Button
           size="sm"
@@ -114,10 +125,10 @@ export function TicketCounter({
           className="flex items-center gap-2 h-10 bg-red-600 hover:bg-red-700 border-red-600 text-white disabled:bg-slate-600 disabled:border-slate-600 disabled:text-slate-400 disabled:hover:bg-slate-600"
         >
           <Shuffle className="h-4 w-4" />
-          Selección Aleatoria
+          Boletos de la suerte
         </Button>
       )}
-      
+
       <div className="text-sm text-slate-400">
         <span>Máx: {Math.min(max, availableTickets)}</span>
       </div>

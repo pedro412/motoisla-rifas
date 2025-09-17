@@ -49,7 +49,7 @@ export function FloatingCartButton({
         </span>
       </div>
 
-      <div className="text-xs opacity-75">Ver carrito</div>
+      <div className="text-xs opacity-75">Pagar ahora</div>
     </button>
   );
 }

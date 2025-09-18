@@ -101,7 +101,6 @@ export function RaffleHeader({ raffle }: RaffleHeaderProps) {
             </li>
             <li>⏰ Tienes 24 horas para enviar tu comprobante de pago</li>
             <li>📱 El ganador será contactado por WhatsApp</li>
-            <li>🚚 Envío gratuito en toda la República Mexicana</li>
           </ul>
         </div>
       </CardContent>

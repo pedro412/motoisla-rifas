@@ -28,7 +28,7 @@ export function ReservationTimer({ timeLeft, isActive, isExpired, ticketCount }:
 
   const getMessage = () => {
     if (isExpired) {
-      return 'Tu reservación ha expirado. Los boletos han sido liberados.';
+      return 'El tiempo de reservación ha terminado. Completa tu pago lo antes posible.';
     }
     if (ticketCount) {
       return `Tienes ${ticketCount} boleto${ticketCount > 1 ? 's' : ''} reservado${ticketCount > 1 ? 's' : ''}`;
@@ -52,7 +52,7 @@ export function ReservationTimer({ timeLeft, isActive, isExpired, ticketCount }:
         </div>
         {!isExpired && (
           <div className="mt-3 text-xs opacity-70">
-            Completa tu compra antes de que expire la reservación
+            ¡Completa tu compra pronto! Otros usuarios están esperando estos boletos
           </div>
         )}
       </CardContent>

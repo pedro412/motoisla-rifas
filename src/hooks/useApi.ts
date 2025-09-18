@@ -224,17 +224,11 @@ export function useAvailableTickets(raffleId: string | null) {
   return useQuery({
     queryKey: ['tickets', raffleId],
     queryFn: async () => {
-      // Trigger cleanup before fetching tickets
-      try {
-        await fetch('/api/cleanup', { method: 'POST' });
-      } catch (error) {
-        console.warn('Cleanup failed:', error);
-      }
       return api.getAvailableTickets(raffleId!);
     },
     enabled: !!raffleId,
     staleTime: 30 * 1000, // 30 seconds
-    refetchInterval: 60 * 1000, // Refetch every minute to release expired tickets
+    refetchInterval: 60 * 1000, // Refetch every minute for real-time updates
   });
 }
 

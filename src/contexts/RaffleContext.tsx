@@ -143,10 +143,10 @@ export function RaffleProvider({ children }: RaffleProviderProps) {
 
   // Fetch raffle and tickets
   const fetchRaffleData = async () => {
+    const startTime = Date.now();
+    const minLoadingTime = 800; // Minimum loading time in milliseconds
+    
     try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      dispatch({ type: 'SET_ERROR', payload: null });
-
       const response = await fetch('/api/raffles');
       if (!response.ok) {
         throw new Error(`Error del servidor: ${response.status}`);
@@ -158,7 +158,14 @@ export function RaffleProvider({ children }: RaffleProviderProps) {
       if (!activeRaffle) {
         dispatch({ type: 'SET_RAFFLE', payload: null });
         dispatch({ type: 'SET_TICKETS', payload: [] });
-        dispatch({ type: 'SET_LOADING', payload: false });
+        
+        // Ensure minimum loading time before showing "no raffles" message
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+        
+        setTimeout(() => {
+          dispatch({ type: 'SET_LOADING', payload: false });
+        }, remainingTime);
         return; // Don't throw error, just set empty state
       }
 
@@ -170,10 +177,25 @@ export function RaffleProvider({ children }: RaffleProviderProps) {
         throw new Error('Failed to fetch tickets data');
       }
       const ticketsData = await ticketsResponse.json();
-      dispatch({ type: 'SET_TICKETS', payload: ticketsData || [] });
+      
+      // Ensure minimum loading time before showing content
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+      
+      setTimeout(() => {
+        dispatch({ type: 'SET_TICKETS', payload: ticketsData || [] });
+      }, remainingTime);
+      
     } catch (error) {
       console.error('Error fetching raffle data:', error);
-      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Unknown error' });
+      
+      // Ensure minimum loading time before showing error
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+      
+      setTimeout(() => {
+        dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Unknown error' });
+      }, remainingTime);
     }
   };
 

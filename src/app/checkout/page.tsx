@@ -38,14 +38,9 @@ function CheckoutContent() {
 
   const reservationTimer = useReservationTimer({
     onTimeout: () => {
-      // Only show timeout alert if we have confirmed server data
-      if (hasServerData) {
-        alert('Tu reservación ha expirado. Serás redirigido al inicio.');
-        localStorage.removeItem('currentOrder');
-        router.push('/');
-      } else {
-        console.log('Timer expired but no server confirmation yet, waiting...');
-      }
+      // Timer is now only for psychological pressure - no actual timeout behavior
+      console.log('Timer expired (display only - tickets remain reserved)');
+      // Note: Tickets are NOT automatically released. Only manual admin action can release them.
     },
     duration: 15, // 15 minutes fallback
     initialTimeLeft: serverRemainingTime // Pass server time when available

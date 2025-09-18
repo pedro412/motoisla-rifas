@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Clock, CreditCard, Phone, Database, Save, RefreshCw } from 'lucide-react';
+import { Settings, Clock, CreditCard, Phone, Database, Save, RefreshCw, Trash2 } from 'lucide-react';
 import { useSettings, useUpdateSetting } from '@/hooks/useApi';
 
 interface BankInfo {
@@ -22,6 +22,7 @@ export default function AdminSettings() {
   const updateSettingMutation = useUpdateSetting();
   const [localSettings, setLocalSettings] = useState<Record<string, string>>({});
   const [hasChanges, setHasChanges] = useState(false);
+  const [isManualCleanupLoading, setIsManualCleanupLoading] = useState(false);
 
   const handleSettingChange = (key: string, value: string | boolean) => {
     const stringValue = typeof value === 'boolean' ? value.toString() : value;
@@ -84,6 +85,25 @@ export default function AdminSettings() {
     const currentBankInfo = getBankInfo();
     const updatedBankInfo = { ...currentBankInfo, [field]: value };
     handleSettingChange('bank_info', JSON.stringify(updatedBankInfo));
+  };
+
+  const handleManualCleanup = async () => {
+    setIsManualCleanupLoading(true);
+    try {
+      const response = await fetch('/api/cleanup', { method: 'POST' });
+      const result = await response.json();
+      
+      if (response.ok) {
+        alert(`Cleanup completed successfully!\nReleased tickets: ${result.releasedTickets}\nCancelled orders: ${result.cancelledOrders}`);
+      } else {
+        alert(`Cleanup failed: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Manual cleanup failed:', error);
+      alert('Manual cleanup failed. Please try again.');
+    } finally {
+      setIsManualCleanupLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -294,13 +314,34 @@ export default function AdminSettings() {
                 <div>
                   <Label className="text-slate-300">Auto Cleanup</Label>
                   <p className="text-sm text-slate-400">
-                    Automatically release expired ticket reservations
+                    Automatically release expired ticket reservations (DISABLED for manual control)
                   </p>
                 </div>
                 <Switch
                   checked={getSettingValue('auto_cleanup_enabled') === 'true'}
                   onCheckedChange={(checked: boolean) => handleSettingChange('auto_cleanup_enabled', checked)}
                 />
+              </div>
+
+              <div className="border-t border-slate-700 pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-slate-300">Manual Cleanup</Label>
+                    <p className="text-sm text-slate-400">
+                      Manually release expired reservations and cancel expired orders
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleManualCleanup}
+                    disabled={isManualCleanupLoading}
+                    variant="outline"
+                    size="sm"
+                    className="border-slate-600 hover:bg-slate-700"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {isManualCleanupLoading ? 'Running...' : 'Run Cleanup'}
+                  </Button>
+                </div>
               </div>
 
               {(localSettings['site_maintenance'] || localSettings['auto_cleanup_enabled']) && (

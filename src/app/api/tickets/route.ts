@@ -11,37 +11,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Raffle ID is required' }, { status: 400 });
     }
 
-    // First, clean up any expired tickets before fetching
-    try {
-      const now = new Date().toISOString();
-      
-      // Release expired tickets back to 'free' status
-      await fetch(`${supabaseConfig.url}/rest/v1/tickets?status=eq.reserved&expires_at=lt.${now}`, {
-        method: 'PATCH',
-        headers: {
-          ...supabaseConfig.headers,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          status: 'free',
-          expires_at: null
-        })
-      });
-
-      // Cancel expired orders
-      await fetch(`${supabaseConfig.url}/rest/v1/orders?status=eq.pending&payment_deadline=lt.${now}`, {
-        method: 'PATCH',
-        headers: {
-          ...supabaseConfig.headers,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          status: 'expired'
-        })
-      });
-    } catch (cleanupError) {
-      console.warn('Cleanup failed, continuing with ticket fetch:', cleanupError);
-    }
+    // Note: Automatic cleanup has been disabled to prevent accidental ticket releases
+    // Cleanup is now only available through manual admin action
 
     // Fetch tickets for the specific raffle ordered by number
     const response = await fetch(`${supabaseConfig.url}/rest/v1/tickets?raffle_id=eq.${raffleId}&order=number.asc`, {

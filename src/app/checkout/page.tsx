@@ -69,7 +69,26 @@ function CheckoutContent() {
           "status" in order &&
           order.status === "paid")
       ) {
-        setIsPaymentConfirmed(true);
+        if (!isPaymentConfirmed) {
+          setIsPaymentConfirmed(true);
+        }
+        
+        // Populate orderData from API response for paid orders
+        if (!orderData && order && typeof order === "object" && "customerInfo" in order) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const orderObj = order as any; // Type assertion for API response
+          const customerInfo = orderObj.customerInfo as { name: string; phone: string; email?: string };
+          const orderInfo = {
+            orderId: orderObj.id,
+            customerName: customerInfo.name,
+            customerPhone: customerInfo.phone,
+            customerEmail: customerInfo.email,
+            ticketNumbers: orderObj.tickets.map((t: string) => parseInt(t)),
+            totalAmount: orderObj.total,
+            raffleName: "Moto Isla Raffle", // Default name since we don't have raffle info
+          };
+          setOrderData(orderInfo);
+        }
         return;
       }
 
@@ -102,14 +121,15 @@ function CheckoutContent() {
         router.push("/");
       }
     }
-  }, [orderResponse, orderId, lastSyncTime, router]);
+  }, [orderResponse, orderId, lastSyncTime, router, isPaymentConfirmed, orderData]);
 
   // Sync with server when order data changes
   useEffect(() => {
     if (orderResponse && !isLoading) {
       syncWithServer();
     }
-  }, [orderResponse, isLoading, syncWithServer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderResponse, isLoading]); // Intentionally excluding syncWithServer to prevent infinite loop
 
   // Sync with server every 30 seconds
   useEffect(() => {

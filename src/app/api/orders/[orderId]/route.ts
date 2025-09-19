@@ -16,8 +16,8 @@ export async function GET(
     // Using supabaseConfig.url instead of hardcoded localhost
     // Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
-    // Get order details from database
-    const orderResponse = await fetch(`${supabaseConfig.url}/rest/v1/orders?id=eq.${orderId}`, {
+    // Get order details from database (simplified without raffle join for now)
+    const orderResponse = await fetch(`${supabaseConfig.url}/rest/v1/orders?id=eq.${orderId}&select=*`, {
       method: 'GET',
       headers: supabaseConfig.headers
     });
@@ -29,6 +29,7 @@ export async function GET(
     }
 
     const orders = await orderResponse.json();
+    
     if (!orders || orders.length === 0) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
@@ -37,7 +38,7 @@ export async function GET(
 
     // Check if order is already paid
     if (order.status === 'paid') {
-      return NextResponse.json({
+      const response = {
         order: {
           id: order.id,
           tickets: order.tickets,
@@ -55,7 +56,8 @@ export async function GET(
         valid: true,
         expired: false,
         paid: true
-      });
+      };
+      return NextResponse.json(response);
     }
 
     // Check if order was cancelled

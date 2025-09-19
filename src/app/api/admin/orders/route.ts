@@ -17,8 +17,8 @@ export async function GET() {
     console.log('Fetching orders from:', `${supabaseConfig.url}/rest/v1/orders`);
     console.log('Using service role key:', supabaseConfig.serviceRoleKey.substring(0, 20) + '...');
 
-    // Get all orders using direct REST API call
-    const response = await fetch(`${supabaseConfig.url}/rest/v1/orders?select=*&order=created_at.desc&limit=50`, {
+    // Get all orders with raffle information using direct REST API call
+    const response = await fetch(`${supabaseConfig.url}/rest/v1/orders?select=*,raffles(title)&order=created_at.desc&limit=50`, {
       method: 'GET',
       headers: supabaseConfig.headers
     });
@@ -43,13 +43,14 @@ export async function GET() {
       return {
         id: order.id,
         tickets: Array.isArray(order.tickets) ? order.tickets : JSON.parse(order.tickets || '[]'),
-        total: order.total_amount || order.total, // Use total_amount from DB
+        total_amount: order.total_amount || order.total, // Use total_amount from DB
         status: order.status,
         created_at: order.created_at,
         payment_deadline: order.payment_deadline,
-        customer_name: order.customer_name || null, // Direct field from DB
-        customer_phone: order.customer_phone || null, // Direct field from DB
-        customer_email: order.customer_email || null // Direct field from DB
+        customer_name: order.customer_name || 'N/A', // Direct field from DB
+        customer_phone: order.customer_phone || '', // Direct field from DB
+        customer_email: order.customer_email || null, // Direct field from DB
+        raffle: order.raffles ? { title: order.raffles.title } : null
       };
     });
 

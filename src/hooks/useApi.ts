@@ -99,7 +99,21 @@ const api = {
   async getOrder(orderId: string): Promise<{ order: unknown; valid: boolean; expired: boolean; paid?: boolean }> {
     const response = await fetch(`/api/orders/${orderId}`);
     if (!response.ok) {
-      throw new Error('Failed to fetch order');
+      // Handle different error cases
+      if (response.status === 404) {
+        return { order: null, valid: false, expired: false };
+      }
+      if (response.status === 410) {
+        // Order expired or cancelled
+        const errorData = await response.json().catch(() => ({}));
+        return { 
+          order: null, 
+          valid: false, 
+          expired: errorData.expired || errorData.cancelled || true 
+        };
+      }
+      // Other errors
+      return { order: null, valid: false, expired: false };
     }
     return response.json();
   },

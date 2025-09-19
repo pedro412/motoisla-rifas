@@ -11,6 +11,7 @@ import RafflesList from '@/components/admin/RafflesList';
 import AdminSettings from '@/components/admin/AdminSettings';
 import TicketManager from '@/components/admin/TicketManager';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
+import OrderActionsMenu from '@/components/admin/OrderActionsMenu';
 import { useUpdateOrderStatus } from '@/hooks/useApi';
 
 interface AdminStats {
@@ -27,13 +28,16 @@ interface AdminStats {
 interface Order {
   id: string;
   tickets: string[];
-  total: number;
+  total_amount: number;
   status: 'pending' | 'paid' | 'cancelled';
   created_at: string;
   payment_deadline: string;
-  customer_name?: string;
-  customer_phone?: string;
+  customer_name: string;
+  customer_phone: string;
   customer_email?: string;
+  raffle?: {
+    title: string;
+  };
 }
 
 export default function AdminDashboard() {
@@ -367,7 +371,7 @@ export default function AdminDashboard() {
                               {order.tickets.join(', ')}
                             </td>
                             <td className="py-3 px-2 text-white font-medium">
-                              {formatCurrency(order.total)}
+                              {formatCurrency(order.total_amount)}
                             </td>
                             <td className="py-3 px-2">
                               {getStatusBadge(order.status)}
@@ -376,7 +380,7 @@ export default function AdminDashboard() {
                               {formatDate(order.created_at)}
                             </td>
                             <td className="py-3 px-2">
-                              <div className="flex gap-2">
+                              <div className="flex items-center gap-2">
                                 {order.status === 'pending' && (
                                   <>
                                     <Button
@@ -410,6 +414,7 @@ export default function AdminDashboard() {
                                     Cancelado
                                   </Badge>
                                 )}
+                                <OrderActionsMenu order={order} />
                               </div>
                             </td>
                           </tr>

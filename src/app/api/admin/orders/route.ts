@@ -14,11 +14,27 @@ export async function GET() {
       );
     }
 
-    console.log('Fetching orders from:', `${supabaseConfig.url}/rest/v1/orders`);
-    console.log('Using service role key:', supabaseConfig.serviceRoleKey.substring(0, 20) + '...');
+    // First, get the current active raffle
+    const raffleResponse = await fetch(`${supabaseConfig.url}/rest/v1/raffles?status=eq.active&order=created_at.desc&limit=1`, {
+      method: 'GET',
+      headers: supabaseConfig.headers
+    });
 
-    // Get all orders with raffle information using direct REST API call
-    const response = await fetch(`${supabaseConfig.url}/rest/v1/orders?select=*,raffles(title)&order=created_at.desc&limit=50`, {
+    if (!raffleResponse.ok) {
+      return NextResponse.json({ error: 'Failed to fetch current raffle' }, { status: 500 });
+    }
+
+    const raffles = await raffleResponse.json();
+    if (!raffles || raffles.length === 0) {
+      // No active raffle, return empty orders
+      return NextResponse.json([]);
+    }
+
+    const currentRaffle = raffles[0];
+    console.log('Current active raffle:', currentRaffle.id, currentRaffle.title);
+
+    // Get orders for current active raffle only
+    const response = await fetch(`${supabaseConfig.url}/rest/v1/orders?raffle_id=eq.${currentRaffle.id}&select=*,raffles(title)&order=created_at.desc&limit=50`, {
       method: 'GET',
       headers: supabaseConfig.headers
     });

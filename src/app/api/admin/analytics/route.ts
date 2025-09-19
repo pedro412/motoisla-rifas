@@ -10,7 +10,7 @@ interface Order {
 
 interface Ticket {
   id: string;
-  status: 'free' | 'reserved' | 'sold';
+  status: 'free' | 'reserved' | 'paid';
   created_at: string;
 };
 
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
     const averageOrderValue = paidOrders > 0 ? totalRevenue / paidOrders : 0;
 
     // Ticket statistics
-    const ticketsSold = (tickets as Ticket[]).filter((ticket) => ticket.status === 'sold').length;
+    const ticketsSold = (tickets as Ticket[]).filter((ticket) => ticket.status === 'paid').length;
     const ticketsReserved = (tickets as Ticket[]).filter((ticket) => ticket.status === 'reserved').length;
     const ticketsAvailable = (tickets as Ticket[]).filter((ticket) => ticket.status === 'free').length;
 

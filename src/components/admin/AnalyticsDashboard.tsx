@@ -18,6 +18,16 @@ import {
 } from 'lucide-react';
 
 interface AnalyticsData {
+  currentRaffle: {
+    id: string;
+    title: string;
+    description: string;
+    ticket_price: number;
+    total_tickets: number;
+    start_date: string;
+    end_date: string;
+    status: string;
+  } | null;
   totalRevenue: number;
   totalOrders: number;
   conversionRate: number;
@@ -112,7 +122,22 @@ export default function AnalyticsDashboard() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-white">Analíticas y Reportes</h2>
-          <p className="text-slate-400">Análisis detallado del rendimiento de las rifas</p>
+          {analytics?.currentRaffle ? (
+            <div className="space-y-1">
+              <p className="text-slate-400">Estadísticas para la rifa actual</p>
+              <div className="flex items-center gap-2">
+                <span className="text-blue-400 font-medium">{analytics.currentRaffle.title}</span>
+                <span className="text-xs bg-green-600 text-white px-2 py-1 rounded-full">
+                  {analytics.currentRaffle.status.toUpperCase()}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                {analytics.currentRaffle.total_tickets} boletos • ${analytics.currentRaffle.ticket_price} c/u
+              </p>
+            </div>
+          ) : (
+            <p className="text-slate-400">No hay rifas activas</p>
+          )}
         </div>
         <div className="flex gap-2">
           <Select value={range} onValueChange={setRange}>
@@ -149,8 +174,22 @@ export default function AnalyticsDashboard() {
 
       {analytics && (
         <>
+          {/* No Active Raffle Message */}
+          {!analytics.currentRaffle && (
+            <div className="bg-yellow-900/20 border border-yellow-600 rounded-lg p-6 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Calendar className="h-6 w-6 text-yellow-400" />
+                <h3 className="text-lg font-semibold text-yellow-300">No hay rifas activas</h3>
+              </div>
+              <p className="text-yellow-200 text-sm">
+                Crea una nueva rifa para comenzar a ver estadísticas y reportes.
+              </p>
+            </div>
+          )}
+
           {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {analytics.currentRaffle && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">

@@ -22,15 +22,53 @@ export async function GET(request: NextRequest) {
     // Using supabaseConfig.url instead of hardcoded localhost
     // Using supabaseConfig.serviceRoleKey instead of hardcoded key
 
+    // First, fetch the current active raffle
+    const rafflesResponse = await fetch(`${supabaseConfig.url}/rest/v1/raffles?status=eq.active&order=created_at.desc&limit=1`, {
+      headers: supabaseConfig.headers
+    });
+
+    if (!rafflesResponse.ok) {
+      throw new Error('Failed to fetch current raffle');
+    }
+
+    const raffles = await rafflesResponse.json();
+    const currentRaffle = raffles[0];
+
+    if (!currentRaffle) {
+      // No active raffle - return empty analytics
+      return NextResponse.json({
+        currentRaffle: null,
+        totalRevenue: 0,
+        totalOrders: 0,
+        conversionRate: 0,
+        averageOrderValue: 0,
+        ticketsSold: 0,
+        ticketsReserved: 0,
+        ticketsAvailable: 0,
+        dailyStats: [],
+        hourlyStats: [],
+        customerStats: {
+          totalCustomers: 0,
+          repeatCustomers: 0,
+          averageTicketsPerCustomer: 0
+        },
+        paymentStats: {
+          pending: 0,
+          paid: 0,
+          cancelled: 0
+        }
+      });
+    }
+
     // Calculate date range
     const now = new Date();
     const daysBack = range === '1d' ? 1 : range === '7d' ? 7 : range === '30d' ? 30 : 90;
     const startDate = new Date(now.getTime() - (daysBack * 24 * 60 * 60 * 1000));
 
-    console.log('Fetching analytics for range:', range, 'from:', startDate.toISOString());
+    console.log('Fetching analytics for current raffle:', currentRaffle.title, 'range:', range, 'from:', startDate.toISOString());
 
-    // Fetch orders data
-    const ordersResponse = await fetch(`${supabaseConfig.url}/rest/v1/orders?created_at=gte.${startDate.toISOString()}&select=*`, {
+    // Fetch orders data filtered by current raffle and date range
+    const ordersResponse = await fetch(`${supabaseConfig.url}/rest/v1/orders?raffle_id=eq.${currentRaffle.id}&created_at=gte.${startDate.toISOString()}&select=*`, {
       headers: supabaseConfig.headers
     });
 
@@ -40,8 +78,8 @@ export async function GET(request: NextRequest) {
 
     const orders = await ordersResponse.json();
 
-    // Fetch tickets data
-    const ticketsResponse = await fetch(`${supabaseConfig.url}/rest/v1/tickets?select=*`, {
+    // Fetch tickets data filtered by current raffle only (not by date since tickets are created when raffle is created)
+    const ticketsResponse = await fetch(`${supabaseConfig.url}/rest/v1/tickets?raffle_id=eq.${currentRaffle.id}&select=*`, {
       headers: supabaseConfig.headers
     });
 
@@ -146,6 +184,16 @@ export async function GET(request: NextRequest) {
     };
 
     const analytics = {
+      currentRaffle: {
+        id: currentRaffle.id,
+        title: currentRaffle.title,
+        description: currentRaffle.description,
+        ticket_price: currentRaffle.ticket_price,
+        total_tickets: currentRaffle.total_tickets,
+        start_date: currentRaffle.start_date,
+        end_date: currentRaffle.end_date,
+        status: currentRaffle.status
+      },
       totalRevenue,
       totalOrders,
       conversionRate,

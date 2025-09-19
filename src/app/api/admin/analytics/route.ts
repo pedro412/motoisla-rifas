@@ -85,9 +85,9 @@ export async function GET(request: NextRequest) {
     const tickets = await ticketsResponse.json();
 
     // Calculate analytics
-    const totalRevenue = (orders as Order[])
-      .filter((order) => order.status === 'paid')
-      .reduce((sum: number, order) => sum + (order.total_amount || 0), 0);
+    const totalRevenue = (orders as Order[]).reduce((sum, order) => {
+      return order.status === 'paid' ? sum + parseFloat(order.total_amount.toString()) : sum;
+    }, 0);
 
     const totalOrders = orders.length;
     const paidOrders = (orders as Order[]).filter((order) => order.status === 'paid').length;

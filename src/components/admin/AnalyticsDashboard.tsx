@@ -244,8 +244,10 @@ export default function AnalyticsDashboard() {
               </CardContent>
             </Card>
           </div>
+          )}
 
           {/* Charts Row */}
+          {analytics.currentRaffle && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Daily Revenue Chart */}
             <Card className="bg-slate-800/50 border-slate-700">
@@ -332,8 +334,10 @@ export default function AnalyticsDashboard() {
               </CardContent>
             </Card>
           </div>
+          )}
 
           {/* Customer & Payment Stats */}
+          {analytics.currentRaffle && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader>
@@ -383,6 +387,7 @@ export default function AnalyticsDashboard() {
               </CardContent>
             </Card>
           </div>
+          )}
         </>
       )}
     </div>

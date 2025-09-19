@@ -233,6 +233,31 @@ export function useCreateOrder() {
   });
 }
 
+export function useDeleteOrder() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const response = await fetch(`/api/admin/orders/${orderId}/delete`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to delete order');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate and refetch orders and stats
+      queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'analytics'] });
+    },
+  });
+}
+
 // Tickets
 export function useAvailableTickets(raffleId: string | null) {
   return useQuery({

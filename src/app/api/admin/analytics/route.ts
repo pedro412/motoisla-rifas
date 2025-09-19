@@ -60,15 +60,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Calculate date range
-    const now = new Date();
-    const daysBack = range === '1d' ? 1 : range === '7d' ? 7 : range === '30d' ? 30 : 90;
-    const startDate = new Date(now.getTime() - (daysBack * 24 * 60 * 60 * 1000));
+    console.log('Fetching analytics for current raffle:', currentRaffle.title, 'range:', range);
 
-    console.log('Fetching analytics for current raffle:', currentRaffle.title, 'range:', range, 'from:', startDate.toISOString());
-
-    // Fetch orders data filtered by current raffle and date range
-    const ordersResponse = await fetch(`${supabaseConfig.url}/rest/v1/orders?raffle_id=eq.${currentRaffle.id}&created_at=gte.${startDate.toISOString()}&select=*`, {
+    // Fetch ALL orders data for current raffle (not filtered by date for totals)
+    const ordersResponse = await fetch(`${supabaseConfig.url}/rest/v1/orders?raffle_id=eq.${currentRaffle.id}&select=*`, {
       headers: supabaseConfig.headers
     });
 
@@ -104,7 +99,12 @@ export async function GET(request: NextRequest) {
     const ticketsReserved = (tickets as Ticket[]).filter((ticket) => ticket.status === 'reserved').length;
     const ticketsAvailable = (tickets as Ticket[]).filter((ticket) => ticket.status === 'free').length;
 
-    // Daily stats
+    // Calculate date range for daily stats only (not for filtering main data)
+    const now = new Date();
+    const daysBack = range === '1d' ? 1 : range === '7d' ? 7 : range === '30d' ? 30 : 90;
+    const startDate = new Date(now.getTime() - (daysBack * 24 * 60 * 60 * 1000));
+
+    // Daily stats (filtered by date range for chart display)
     const dailyStats = [];
     for (let i = 0; i < daysBack; i++) {
       const date = new Date(startDate.getTime() + (i * 24 * 60 * 60 * 1000));

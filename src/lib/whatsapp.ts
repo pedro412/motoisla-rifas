@@ -1,4 +1,4 @@
-import { ENV } from './env';
+import { ENV, BANK_INFO } from './env';
 
 export interface WhatsAppMessageData {
   customerName: string;
@@ -63,10 +63,10 @@ Veo que tienes una orden pendiente de pago:
 • Total: $${data.totalAmount.toLocaleString()} MXN
 
 💰 *Datos bancarios para transferencia:*
-• Banco: BBVA Bancomer
-• Titular: Moto Isla Raffle
-• Cuenta: 0123456789
-• CLABE: 012345678901234567
+• Banco: ${BANK_INFO.bankName}
+• Titular: ${BANK_INFO.accountHolder}
+• Cuenta: ${BANK_INFO.accountNumber}
+• CLABE: ${BANK_INFO.clabe}
 
 📱 *Pasos para completar tu pago:*
 1. Realiza la transferencia bancaria por $${data.totalAmount.toLocaleString()} MXN

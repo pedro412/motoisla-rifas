@@ -34,7 +34,7 @@ export async function GET() {
     console.log('Current active raffle:', currentRaffle.id, currentRaffle.title);
 
     // Get orders for current active raffle only
-    const response = await fetch(`${supabaseConfig.url}/rest/v1/orders?raffle_id=eq.${currentRaffle.id}&select=*,raffles(title)&order=created_at.desc&limit=100`, {
+    const response = await fetch(`${supabaseConfig.url}/rest/v1/orders?raffle_id=eq.${currentRaffle.id}&select=*,raffles(title)&order=created_at.desc&limit=200`, {
       method: 'GET',
       headers: supabaseConfig.headers
     });

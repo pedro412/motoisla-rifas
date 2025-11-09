@@ -45,11 +45,15 @@ export default function AdminDashboard() {
   const [password, setPassword] = useState('');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [showPaidOnly, setShowPaidOnly] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'create-raffle' | 'manage-raffles' | 'tickets' | 'analytics' | 'settings'>('dashboard');
   
   const updateOrderStatus = useUpdateOrderStatus();
+  const filteredOrders = showPaidOnly
+    ? orders.filter((order) => order.status === 'paid')
+    : orders;
 
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
     try {
@@ -320,15 +324,24 @@ export default function AdminDashboard() {
             {/* Orders Table */}
             <Card className="moto-card moto-border">
               <CardHeader>
-                <CardTitle className="text-white flex items-center justify-between">
+                <CardTitle className="text-white flex items-center justify-between gap-3 flex-wrap">
                   <span>📋 Órdenes Recientes</span>
-                  <Button
-                    onClick={fetchDashboardData}
-                    variant="outline"
-                    size="sm"
-                  >
-                    🔄 Actualizar
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => setShowPaidOnly((prev) => !prev)}
+                      variant={showPaidOnly ? "primary" : "outline"}
+                      size="sm"
+                    >
+                      {showPaidOnly ? "Mostrar todas" : "Solo pagadas"}
+                    </Button>
+                    <Button
+                      onClick={fetchDashboardData}
+                      variant="outline"
+                      size="sm"
+                    >
+                      🔄 Actualizar
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -337,9 +350,9 @@ export default function AdminDashboard() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
                     <p className="text-slate-400">Cargando órdenes...</p>
                   </div>
-                ) : orders.length === 0 ? (
+                ) : filteredOrders.length === 0 ? (
                   <div className="text-center py-8 text-slate-400">
-                    No hay órdenes disponibles
+                    {showPaidOnly ? 'No hay órdenes pagadas' : 'No hay órdenes disponibles'}
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -356,7 +369,7 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {orders.map((order) => (
+                        {filteredOrders.map((order) => (
                           <tr key={order.id} className="border-b border-slate-700/50">
                             <td className="py-3 px-2 text-slate-300 font-mono text-xs">
                               {order.id.slice(0, 8)}...

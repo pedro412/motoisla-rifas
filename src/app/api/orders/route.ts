@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { SecurityUtils, validateRequest, CreateOrderSchema } from '@/lib/security';
+import { SecurityUtils } from '@/lib/security';
 
 export async function GET(request: NextRequest) {
   try {

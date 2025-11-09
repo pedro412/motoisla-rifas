@@ -26,7 +26,7 @@ A modern, full-stack raffle application built with Next.js, featuring real-time 
 - **Forms**: React Hook Form + Zod validation
 - **Database**: Supabase (PostgreSQL)
 - **Real-time**: Supabase Realtime subscriptions
-- **Deployment**: Netlify-ready configuration
+- **Deployment**: Supabase Hosting (Web Apps)
 
 ## 📦 Installation
 
@@ -237,20 +237,21 @@ npm run test
 
 ## 🚀 Deployment
 
-The application is configured for deployment on Netlify:
+The production build is uploaded to Supabase Hosting:
 
 ```bash
 # Build the application
 npm run build
 
-# Deploy to Netlify
-npm run deploy
+# Optional: preview the production server locally
+npm run start
 ```
 
-Environment variables required:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+### Supabase Hosting Steps
+1. Connect the GitHub repository (or upload a release bundle) in **Supabase Dashboard → Hosting → Web Apps**.
+2. Configure all required environment variables from `env.example` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, etc.).
+3. Trigger a deployment; Supabase will run `npm install` and `npm run build` automatically.
+4. After deploy, confirm `/` and `/admin` load correctly and Supabase logs show healthy API traffic.
 
 ## 🤝 Contributing
 
